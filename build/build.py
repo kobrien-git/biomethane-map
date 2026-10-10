@@ -10,7 +10,9 @@ Steps
  3. For each site, find buildings within 1 km of the site boundary (Microsoft building footprints,
     OpenStreetMap where Microsoft has gaps), classify likely / possible homes and count them in
     0-250 m, 250-500 m and 500-1,000 m bands.
- 4. Write GeoJSON + CSV for the web map in docs/data/.
+ 4. Remove homes reported as "not a home" (config/excluded_homes.csv, plus rows marked
+    approved in the Google Sheet behind the map's report form - see config/settings.json).
+ 5. Write GeoJSON + CSV for the web map in docs/data/.
 
 Run:  python build/build.py
 """
@@ -30,12 +32,13 @@ TODAY = datetime.date.today()
 NPA = "https://services.arcgis.com/NzlPQPKn5QF9v2US/arcgis/rest/services/IrishPlanningApplications/FeatureServer/"
 MS_INDEX = "https://minedbuildings.z5.web.core.windows.net/global-buildings/dataset-links.csv"
 KEYWORDS = ['ANAEROBIC', 'BIOMETHANE', 'BIO-METHANE', 'BIOGAS', 'DIGESTER', 'DIGESTATE', 'RENEWABLE GAS']
+SETTINGS = json.load(open(os.path.join(CFG, 'settings.json'))) if os.path.exists(os.path.join(CFG, 'settings.json')) else {}
 BANDS = [(0, 250, '0–250 m'), (250, 500, '250–500 m'), (500, 1000, '500–1,000 m')]
 
 
 def get(url, params=None, data=None, tries=4):
     if params: url = url + '?' + urllib.parse.urlencode(params)
-    cmd = ['curl', '-sS', '--fail', '-m', '180', '--retry', '3', '-A', 'biomethane-map', url]
+    cmd = ['curl', '-sSL', '--fail', '-m', '180', '--retry', '3', '-A', 'biomethane-map', url]
     if data: cmd += ['--data-urlencode', data]
     for k in range(tries):
         r = subprocess.run(cmd, capture_output=True)
@@ -249,14 +252,48 @@ def homes_for_site(site):
     return h
 
 
-# ---------------------------------------------------------------- 3. outputs
+# ---------------------------------------------------------------- 3. exclusions
+def home_id(pt):
+    """Stable ID from the home's ITM position (metres), e.g. H582731-614545."""
+    return f'H{pt.x:.0f}-{pt.y:.0f}'
+
+
+def excluded_homes():
+    ids = set()
+    f = os.path.join(CFG, 'excluded_homes.csv')
+    if os.path.exists(f):
+        ids |= set(pd.read_csv(f, dtype=str).fillna('').home_id.str.strip())
+    url = SETTINGS.get('report_sheet_csv')
+    if url:
+        try:
+            df = pd.read_csv(io.BytesIO(get(url)), dtype=str).fillna('')
+            cols = {c.lower().strip(): c for c in df.columns}
+            idc = next((cols[c] for c in cols if 'home id' in c), None)
+            apc = next((cols[c] for c in cols if c.startswith('approved')), None)
+            if idc and apc:
+                ok = df[apc].str.strip().str.lower().isin(['y', 'yes', 'true', '1', 'x', 'approved'])
+                got = set(df.loc[ok, idc].str.strip())
+                print(f'report sheet: {len(df)} reports, {len(got)} approved', flush=True)
+                ids |= got
+            else:
+                print('report sheet: no "Home ID" / "Approved" column found', flush=True)
+        except Exception as e:  # never fail the whole refresh because of the sheet
+            print('report sheet unavailable:', e, flush=True)
+    ids.discard('')
+    return ids
+
+
+# ---------------------------------------------------------------- 4. outputs
 def main():
     sites = build_sites()
     print(len(sites), 'sites', flush=True)
     homes, rings = [], []
+    drop = excluded_homes(); dropped = 0
     for i, s in sites.iterrows():
         print('homes:', s.project, flush=True)
         h = homes_for_site(s).copy(); h['site_id'] = s.site_id; h['project'] = s.project
+        h['home_id'] = [home_id(g) for g in h.geometry]
+        n = len(h); h = h[~h.home_id.isin(drop)]; dropped += n - len(h)
         homes.append(h)
         for lo, hi, lab in BANDS:
             cl = int(((h.dist_m <= hi) & (h.tier == 'Likely home')).sum()); cp = int(((h.dist_m <= hi) & (h.tier == 'Possible home')).sum())
@@ -266,6 +303,7 @@ def main():
                           'possible_homes_within': cp, 'geometry': ring})
         sites.loc[i, 'nearest_home_m'] = float(h.dist_m.min()) if len(h) else None
     homes = gpd.GeoDataFrame(pd.concat(homes, ignore_index=True), crs=2157)
+    print('homes removed as not-a-home:', dropped, flush=True)
     # dedupe homes shared by two nearby sites: keep both (each site's count is its own), fine for display
     rings = gpd.GeoDataFrame(rings, crs=2157)
     pts = sites.copy()
@@ -273,14 +311,14 @@ def main():
     w = lambda gdf, name, prec=6: open(os.path.join(OUT, name), 'w').write(gdf.to_crs(4326).to_json(drop_id=True, to_wgs84=False))
     poly = sites[sites.geometry.geom_type != 'Point']
     w(poly.drop(columns=['description']), 'sites.geojson'); w(pts, 'site_points.geojson'); w(rings, 'rings.geojson')
-    w(homes[['site_id', 'project', 'tier', 'dist_m', 'band', 'geometry']], 'homes.geojson')
+    w(homes[['home_id', 'site_id', 'project', 'tier', 'dist_m', 'band', 'geometry']], 'homes.geojson')
     cols = ['project', 'county', 'planning_authority', 'type', 'developer', 'status', 'status_note', 'application_refs', 'appeal_refs',
             'first_lodged', 'latest_lodged', 'latest_decision', 'tonnes_per_year', 'site_area_ha',
             'likely_within_250m', 'possible_within_250m', 'likely_within_500m', 'possible_within_500m',
             'likely_within_1000m', 'possible_within_1000m', 'nearest_home_m', 'approx_location', 'planning_link']
     sites[cols].sort_values(['status', 'project']).to_csv(os.path.join(OUT, 'sites_summary.csv'), index=False)
     json.dump({'last_updated': TODAY.isoformat(), 'sites': int(len(sites)), 'homes_points': int(len(homes)),
-               'start_date': START_DATE, 'needs_review': int(sites.needs_review.sum())},
+               'start_date': START_DATE, 'homes_removed': int(dropped), 'needs_review': int(sites.needs_review.sum())},
               open(os.path.join(OUT, 'meta.json'), 'w'), indent=1)
     print('done', TODAY)
 
