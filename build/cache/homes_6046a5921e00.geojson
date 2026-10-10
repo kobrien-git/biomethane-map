@@ -1,0 +1,10 @@
+{
+"type": "FeatureCollection",
+"name": "homes_6046a5921e00",
+"crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:EPSG::2157" } },
+"features": [
+{ "type": "Feature", "properties": { "tier": "Possible home", "dist_m": 978.0, "band": "500–1,000 m" }, "geometry": { "type": "Point", "coordinates": [ 620034.890709997736849, 669612.504990798188373 ] } },
+{ "type": "Feature", "properties": { "tier": "Possible home", "dist_m": 998.0, "band": "500–1,000 m" }, "geometry": { "type": "Point", "coordinates": [ 619845.59472002950497, 669431.07171975588426 ] } },
+{ "type": "Feature", "properties": { "tier": "Likely home", "dist_m": 539.0, "band": "500–1,000 m" }, "geometry": { "type": "Point", "coordinates": [ 621658.08058949012775, 668412.959516354836524 ] } }
+]
+}
