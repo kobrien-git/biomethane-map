@@ -198,7 +198,7 @@ document.getElementById('o-hide').onchange = e => { opt.hideMarked = e.target.ch
 let SITES = [], RINGS = {}, HOMES = {}, POLYS = {}, HOME_MK = [], RING_LBL = {}, meta = {};
 const active = new Set(Object.keys(STATUS));
 
-Promise.all(['site_points','sites','rings','homes'].map(n => fetch(`data/${n}.geojson`).then(r => r.json())).concat([fetch('data/meta.json').then(r=>r.json()).catch(()=>({}))]))
+Promise.all(['site_points','sites','rings','homes'].map(n => fetch(`data/${n}.geojson`, {cache:'no-cache'}).then(r => r.json())).concat([fetch('data/meta.json', {cache:'no-cache'}).then(r=>r.json()).catch(()=>({}))]))
 .then(([pts, polys, rings, homes, m]) => {
   meta = m;
   if (m.last_updated) document.getElementById('sub').textContent = `${pts.features.length} sites · applications lodged or decided since 2021 · updated ${new Date(m.last_updated).toLocaleDateString('en-IE',{day:'numeric',month:'short',year:'numeric'})}`;
@@ -270,7 +270,7 @@ function homePopup(f){
     <div class="id">ID ${esc(p.home_id || '–')}</div>
     ${m ? `<div class="ok">You marked this as not a home. It is left out of your counts; it will be removed for everyone once reviewed.</div>` : ''}
     <div class="row">
-      ${m ? `<button data-act="undo" data-id="${esc(p.home_id)}">Undo</button>`
+      ${!p.home_id ? '' : m ? `<button data-act="undo" data-id="${esc(p.home_id)}">Undo</button>`
           : `<button class="warn" data-act="report" data-id="${esc(p.home_id)}" data-site="${esc(p.project)}">Not a home? Report it</button>`}
       <a class="hb" href="${g}" target="_blank" rel="noopener">Check on satellite ↗</a>
     </div></div>`;
