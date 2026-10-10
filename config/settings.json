@@ -1,0 +1,4 @@
+{
+  "report_sheet_csv": "https://docs.google.com/spreadsheets/d/10bPpO12Ajiv6zZqf4Y8IjOAN-zD_0EYFiw7znc818No/pub?gid=777&single=true&output=csv",
+  "_note": "CSV of the 'approved_for_map' tab of the 'Biomethane map - not-a-home reports' Google Sheet (File > Share > Publish to web). Only Home IDs you mark Y are listed there."
+}
