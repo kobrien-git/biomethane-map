@@ -1,0 +1,24 @@
+name: Refresh map data
+on:
+  schedule:
+    - cron: '17 5 * * 1'      # every Monday ~06:17 Irish time
+  workflow_dispatch: {}        # "Run workflow" button for a manual refresh
+permissions:
+  contents: write
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.12' }
+      - run: pip install -r build/requirements.txt
+      - run: python build/build.py
+      - name: Commit updated data
+        run: |
+          git config user.name "map-bot"
+          git config user.email "map-bot@users.noreply.github.com"
+          git add docs/data build/cache/homes_*.geojson
+          git diff --staged --quiet || git commit -m "Data refresh $(date -u +%Y-%m-%d)"
+          git push
