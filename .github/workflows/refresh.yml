@@ -1,7 +1,7 @@
 name: Refresh map data
 on:
   schedule:
-    - cron: '17 5 * * 1'      # every Monday ~06:17 Irish time
+    - cron: '17 5 * * *'      # every day ~06:17 Irish time
   workflow_dispatch: {}        # "Run workflow" button for a manual refresh
 permissions:
   contents: write
