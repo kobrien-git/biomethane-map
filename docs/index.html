@@ -1,0 +1,266 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Biomethane Applications Ireland</title>
+<meta name="description" content="Map of anaerobic digestion / biomethane planning applications in Ireland since 2021, with homes within 1 km of each site boundary.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+/* Layout: full-height map with a left side panel (bottom sheet on phones). */
+:root{
+  --bg:#f6f7f4; --panel:#ffffff; --fg:#1d2420; --muted:#5b665f; --line:#dde2dc; --accent:#2f6b4f;
+  --appeal:#c8361f; --pending:#e08a1e; --granted:#6a3d9a; --refused:#2e8b57; --nodec:#8a8f8c; --other:#b9bdb9; --pre:#1f78b4;
+  --home-likely:#0b63ce; --home-possible:#8ec3ff;
+  --sans:'IBM Plex Sans',system-ui,-apple-system,'Segoe UI',sans-serif; --mono:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--bg:#121614;--panel:#1a201d;--fg:#e8ece9;--muted:#9aa59e;--line:#2c3430;--accent:#7cc4a0;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#121614;--panel:#1a201d;--fg:#e8ece9;--muted:#9aa59e;--line:#2c3430;--accent:#7cc4a0;color-scheme:dark}
+html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--fg);font:14px/1.45 var(--sans);display:flex;overflow:hidden}
+#panel{width:380px;max-width:100%;display:flex;flex-direction:column;background:var(--panel);border-right:1px solid var(--line);z-index:500}
+#map{flex:1;min-width:0}
+header{padding:16px 16px 12px;border-bottom:1px solid var(--line)}
+h1{font-size:18px;margin:0 0 4px;line-height:1.25;text-wrap:balance}
+.sub{color:var(--muted);font-size:12.5px}
+.controls{padding:10px 16px;border-bottom:1px solid var(--line);display:flex;flex-direction:column;gap:8px}
+input[type=search]{width:100%;box-sizing:border-box;padding:8px 10px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--fg);font:inherit}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{display:inline-flex;align-items:center;gap:6px;padding:3px 9px;border:1px solid var(--line);border-radius:999px;font-size:12px;cursor:pointer;background:var(--panel);color:var(--fg);user-select:none}
+.chip[aria-pressed=false]{opacity:.45}
+.dot{width:10px;height:10px;border-radius:50%;flex:none;border:1.5px solid #fff;box-shadow:0 0 0 1px rgba(0,0,0,.25)}
+#list{overflow:auto;flex:1;min-height:0}
+.site{padding:10px 16px;border-bottom:1px solid var(--line);cursor:pointer;display:grid;grid-template-columns:auto 1fr auto;gap:2px 10px;align-items:center}
+.site:hover,.site:focus-visible{background:var(--bg);outline:none}
+.site .name{font-weight:600}
+.site .meta{grid-column:2/4;color:var(--muted);font-size:12px}
+.site .n{font:500 12px var(--mono);color:var(--muted);text-align:right;font-variant-numeric:tabular-nums}
+footer{padding:10px 16px;border-top:1px solid var(--line);font-size:12px;color:var(--muted);display:flex;flex-wrap:wrap;gap:6px 14px}
+footer a,.detail a{color:var(--accent)}
+/* detail card */
+.detail{padding:14px 16px;border-bottom:1px solid var(--line);background:var(--bg)}
+.detail h2{font-size:16px;margin:0 0 2px}
+.pill{display:inline-block;padding:2px 8px;border-radius:999px;font-size:11.5px;font-weight:600;color:#fff;letter-spacing:.02em}
+.kv{display:grid;grid-template-columns:max-content 1fr;gap:3px 10px;margin:10px 0;font-size:12.5px}
+.kv dt{color:var(--muted)} .kv dd{margin:0;min-width:0;overflow-wrap:anywhere}
+table.counts{border-collapse:collapse;width:100%;font-size:12.5px;margin:6px 0 4px}
+table.counts th,table.counts td{padding:4px 6px;border-bottom:1px solid var(--line);text-align:right;font-variant-numeric:tabular-nums}
+table.counts th:first-child,table.counts td:first-child{text-align:left}
+table.counts td{font-family:var(--mono)}
+.note{font-size:11.5px;color:var(--muted)}
+.btns{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.btn{font:500 12px var(--sans);padding:6px 10px;border-radius:6px;border:1px solid var(--line);background:var(--panel);color:var(--fg);cursor:pointer;text-decoration:none}
+.btn:hover{border-color:var(--accent)}
+/* map labels */
+.lbl{background:rgba(255,255,255,.88);border:0;box-shadow:none;color:#1d2420;font:600 11px var(--sans);padding:1px 5px;border-radius:3px}
+.lbl:before{display:none}
+.ringlbl{background:rgba(255,255,255,.85);border:0;box-shadow:none;color:#1d2420;font:500 10.5px var(--mono);padding:0 4px;border-radius:3px;white-space:nowrap}
+.ringlbl:before{display:none}
+.legend{background:var(--panel);color:var(--fg);padding:8px 10px;border-radius:6px;box-shadow:0 1px 4px rgba(0,0,0,.25);font-size:12px;line-height:1.6}
+.legend .row{display:flex;align-items:center;gap:7px}
+.legend .ring{width:18px;height:0;border-top:2px dashed}
+.leaflet-container{font-family:var(--sans)}
+@media (max-width:760px){
+  body{flex-direction:column-reverse}
+  #panel{width:100%;height:46%;border-right:0;border-top:1px solid var(--line)}
+  header{padding:10px 16px 8px} h1{font-size:16px}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<aside id="panel">
+  <header>
+    <h1>Biomethane &amp; AD planning applications, Ireland</h1>
+    <div class="sub" id="sub">Applications lodged or decided since 2021, with homes within 1 km of each site boundary.</div>
+  </header>
+  <div class="controls">
+    <input type="search" id="q" placeholder="Search site, county, developer or reference" aria-label="Search sites">
+    <div class="chips" id="chips"></div>
+  </div>
+  <div id="detail" class="detail" hidden></div>
+  <div id="list" role="list"></div>
+  <footer>
+    <a href="data/sites_summary.csv">Download table (CSV)</a>
+    <a href="data/site_points.geojson">Sites (GeoJSON)</a>
+    <a href="data/homes.geojson">Homes (GeoJSON)</a>
+    <a href="#" id="about">About the data</a>
+  </footer>
+</aside>
+<main id="map" aria-label="Map"></main>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet-simple-map-screenshoter@0.5.0/dist/leaflet-simple-map-screenshoter.js"></script>
+<script>
+const STATUS = {
+  'Under appeal':'--appeal','Pending decision':'--pending','Granted':'--granted','Refused':'--refused',
+  'No decision recorded':'--nodec','Other':'--other','Pre-application':'--pre'};
+const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+const col = s => css(STATUS[s] || '--other');
+const fmt = n => (n==null||isNaN(n)) ? '–' : Math.round(n).toLocaleString('en-IE');
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+const map = L.map('map', {zoomControl:true, preferCanvas:true}).setView([53.4,-8.0], 7);
+const base = {
+  'Street map (OpenStreetMap)': L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,crossOrigin:true,attribution:'© OpenStreetMap contributors'}),
+  'Satellite (Esri)': L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:19,crossOrigin:true,attribution:'Imagery © Esri, Maxar, Earthstar Geographics'}),
+  'Satellite + place names': L.layerGroup([
+     L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:19,crossOrigin:true,attribution:'Imagery © Esri'}),
+     L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}',{maxZoom:19,crossOrigin:true})]),
+  'Topographic (Esri)': L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}',{maxZoom:19,crossOrigin:true,attribution:'© Esri'})
+};
+base['Street map (OpenStreetMap)'].addTo(map);
+
+const lyr = {sites:L.layerGroup(), rings:L.layerGroup(), ringLabels:L.layerGroup(), homes:L.layerGroup(), points:L.layerGroup().addTo(map)};
+const overlays = {'Application sites':lyr.points,'Site boundaries':lyr.sites,'Distance rings (250 / 500 / 1,000 m)':lyr.rings,'Homes within 1 km':lyr.homes};
+L.control.layers(base, overlays, {collapsed:true}).addTo(map);
+L.control.scale({imperial:false}).addTo(map);
+if (L.simpleMapScreenshoter) L.simpleMapScreenshoter({position:'topleft', hideElementsWithSelectors:['.leaflet-control-container'], screenName:() => 'biomethane-map-' + new Date().toISOString().slice(0,10), mimeType:'image/png'}).addTo(map);
+
+const legend = L.control({position:'bottomright'});
+legend.onAdd = () => { const d = L.DomUtil.create('div','legend');
+  d.innerHTML = Object.keys(STATUS).map(s => `<div class="row"><span class="dot" style="background:${col(s)}"></span>${s}</div>`).join('') +
+   '<hr style="border:0;border-top:1px solid var(--line);margin:6px 0">' +
+   `<div class="row"><span class="dot" style="background:${css('--home-likely')}"></span>Likely home</div>` +
+   `<div class="row"><span class="dot" style="background:${css('--home-possible')};width:8px;height:8px"></span>Possible home (unverified)</div>` +
+   `<div class="row"><span class="ring" style="border-color:#e31a1c"></span>250 m</div><div class="row"><span class="ring" style="border-color:#ff7f00"></span>500 m</div><div class="row"><span class="ring" style="border-color:#e6c300"></span>1,000 m</div>`;
+  return d; };
+legend.addTo(map);
+
+let SITES = [], RINGS = {}, HOMES = {}, POLYS = {}, meta = {};
+const active = new Set(Object.keys(STATUS));
+
+Promise.all(['site_points','sites','rings','homes'].map(n => fetch(`data/${n}.geojson`).then(r => r.json())).concat([fetch('data/meta.json').then(r=>r.json()).catch(()=>({}))]))
+.then(([pts, polys, rings, homes, m]) => {
+  meta = m;
+  if (m.last_updated) document.getElementById('sub').textContent = `${pts.features.length} sites · applications lodged or decided since 2021 · updated ${new Date(m.last_updated).toLocaleDateString('en-IE',{day:'numeric',month:'short',year:'numeric'})}`;
+  polys.features.forEach(f => POLYS[f.properties.site_id] = f);
+  rings.features.forEach(f => (RINGS[f.properties.site_id] ||= []).push(f));
+  homes.features.forEach(f => (HOMES[f.properties.site_id] ||= []).push(f));
+  SITES = pts.features.map(f => ({...f.properties, lat:f.geometry.coordinates[1], lon:f.geometry.coordinates[0]}));
+  // site boundaries
+  L.geoJSON(polys, {style: f => ({color:col(f.properties.status), weight:2, fillOpacity:.18}), onEachFeature:(f,l)=>l.on('click',()=>select(f.properties.site_id))}).addTo(lyr.sites);
+  // rings + labels
+  const rc = {250:'#e31a1c',500:'#ff7f00',1000:'#e6c300'};
+  L.geoJSON(rings, {style: f => ({color:rc[f.properties.distance_m], weight:1.6, dashArray:'6 5', fill:false})}).addTo(lyr.rings);
+  rings.features.forEach(f => {
+    const p = f.properties, b = L.geoJSON(f).getBounds();
+    const t = `${p.distance_m.toLocaleString('en-IE')} m · ${p.likely_homes_within} likely + ${p.possible_homes_within} possible homes`;
+    L.tooltip({permanent:true, direction:'top', className:'ringlbl', offset:[0,0]}).setLatLng([b.getNorth(), b.getCenter().lng]).setContent(t).addTo(lyr.ringLabels);
+  });
+  // homes
+  homes.features.forEach(f => {
+    const p = f.properties, likely = p.tier === 'Likely home';
+    L.circleMarker([f.geometry.coordinates[1], f.geometry.coordinates[0]], {radius: likely?4:3, color:'#fff', weight:1, fillColor: css(likely?'--home-likely':'--home-possible'), fillOpacity:1})
+     .bindTooltip(`${esc(p.tier)} · ${fmt(p.dist_m)} m from ${esc(p.project)} boundary`).addTo(lyr.homes);
+  });
+  // site markers
+  SITES.forEach(s => {
+    s.marker = L.circleMarker([s.lat, s.lon], {radius:8, color:'#fff', weight:2, fillColor:col(s.status), fillOpacity:1})
+      .bindTooltip(esc(s.project), {className:'lbl', direction:'right', offset:[8,0]}).on('click', () => select(s.site_id));
+    s.marker.addTo(lyr.points);
+  });
+  buildChips(); renderList(); zoomRules();
+  const h = location.hash.slice(1); if (h) select(h);
+});
+
+function zoomRules(){
+  const z = map.getZoom();
+  const toggle = (g, on) => on ? map.addLayer(g) : map.removeLayer(g);
+  toggle(lyr.sites, z >= 11); toggle(lyr.rings, z >= 12); toggle(lyr.ringLabels, z >= 14); toggle(lyr.homes, z >= 12);
+  SITES.forEach(s => { const t = s.marker.getTooltip(); if (!t) return; t.options.permanent = z >= 9; s.marker.unbindTooltip().bindTooltip(esc(s.project), {className:'lbl', direction:'right', offset:[8,0], permanent: z >= 9}); });
+}
+map.on('zoomend', zoomRules);
+
+function buildChips(){
+  const c = document.getElementById('chips');
+  c.innerHTML = Object.keys(STATUS).map(s => {
+    const n = SITES.filter(x => x.status === s).length;
+    return n ? `<button class="chip" aria-pressed="true" data-s="${s}"><span class="dot" style="background:${col(s)}"></span>${s} <b>${n}</b></button>` : '';
+  }).join('');
+  c.querySelectorAll('.chip').forEach(b => b.onclick = () => {
+    const s = b.dataset.s, on = b.getAttribute('aria-pressed') === 'true';
+    b.setAttribute('aria-pressed', !on); on ? active.delete(s) : active.add(s); renderList();
+  });
+}
+document.getElementById('q').addEventListener('input', renderList);
+
+function renderList(){
+  const q = document.getElementById('q').value.toLowerCase().trim();
+  const vis = SITES.filter(s => active.has(s.status) && (!q || [s.project,s.county,s.developer,s.application_refs,s.appeal_refs].join(' ').toLowerCase().includes(q)));
+  SITES.forEach(s => { const on = vis.includes(s); on ? lyr.points.addLayer(s.marker) : lyr.points.removeLayer(s.marker); });
+  vis.sort((a,b) => (a.county||'').localeCompare(b.county||'') || a.project.localeCompare(b.project));
+  document.getElementById('list').innerHTML = vis.map(s => `
+    <div class="site" role="listitem" tabindex="0" data-id="${s.site_id}">
+      <span class="dot" style="background:${col(s.status)}"></span>
+      <span class="name">${esc(s.project)}</span>
+      <span class="n" title="Likely + possible homes within 1 km">${fmt((s.likely_within_1000m||0)+(s.possible_within_1000m||0))} homes</span>
+      <span class="meta">${esc(s.county)} · ${esc(s.status)}${s.application_refs ? ' · ' + esc(s.application_refs) : ''}</span>
+    </div>`).join('') || '<p class="note" style="padding:16px">No sites match.</p>';
+  document.querySelectorAll('.site').forEach(el => { el.onclick = () => select(el.dataset.id); el.onkeydown = e => { if (e.key === 'Enter') select(el.dataset.id); }; });
+}
+
+function select(id){
+  const s = SITES.find(x => x.site_id === id); if (!s) return;
+  history.replaceState(null, '', '#' + id);
+  const poly = POLYS[id];
+  if (poly) map.fitBounds(L.geoJSON(poly).getBounds().pad(1.2), {maxZoom:15}); else map.setView([s.lat, s.lon], 14);
+  const row = (k, v) => v ? `<dt>${k}</dt><dd>${v}</dd>` : '';
+  const c = b => [s[`likely_within_${b}m`]||0, s[`possible_within_${b}m`]||0];
+  const [l250,p250] = c(250), [l500,p500] = c(500), [l1k,p1k] = c(1000);
+  const gmaps = `https://www.google.com/maps/@${s.lat},${s.lon},800m/data=!3m1!1e3`;
+  const d = document.getElementById('detail'); d.hidden = false;
+  d.innerHTML = `
+    <h2>${esc(s.project)}</h2>
+    <span class="pill" style="background:${col(s.status)}">${esc(s.status)}</span>
+    <dl class="kv">
+      ${row('Status', esc(s.status_note))}
+      ${row('County', esc(s.county))}
+      ${row('Type', esc(s.type))}
+      ${row('Developer', esc(s.developer))}
+      ${row('Planning refs', esc(s.application_refs))}
+      ${row('Appeal refs', esc(s.appeal_refs))}
+      ${row('Lodged', s.latest_lodged && s.latest_lodged !== 'None' ? esc(s.latest_lodged) : '')}
+      ${row('Decision', s.latest_decision && s.latest_decision !== 'None' ? esc(s.latest_decision) : '')}
+      ${row('Scale', s.tonnes_per_year ? esc(s.tonnes_per_year) + ' tonnes / year' : '')}
+      ${row('Site area', s.site_area_ha ? s.site_area_ha + ' ha' : '')}
+    </dl>
+    <table class="counts" aria-label="Homes within distance of site boundary">
+      <thead><tr><th>Within</th><th>Likely</th><th>Possible</th><th>Total</th></tr></thead>
+      <tbody>
+        <tr><td>250 m</td><td>${fmt(l250)}</td><td>${fmt(p250)}</td><td>${fmt(l250+p250)}</td></tr>
+        <tr><td>500 m</td><td>${fmt(l500)}</td><td>${fmt(p500)}</td><td>${fmt(l500+p500)}</td></tr>
+        <tr><td>1,000 m</td><td>${fmt(l1k)}</td><td>${fmt(p1k)}</td><td>${fmt(l1k+p1k)}</td></tr>
+      </tbody>
+    </table>
+    <div class="note">Distances measured from the site boundary. ${s.approx_location ? '<b>Site boundary not published – location approximate.</b> ' : ''}Homes are estimated from building footprints and are unverified.</div>
+    <div class="btns">
+      ${s.planning_link ? `<a class="btn" href="${esc(s.planning_link)}" target="_blank" rel="noopener">Planning file</a>` : ''}
+      <a class="btn" href="${gmaps}" target="_blank" rel="noopener">Google satellite</a>
+      <button class="btn" id="dl">Download homes (CSV)</button>
+      <button class="btn" id="close">Close</button>
+    </div>`;
+  document.getElementById('close').onclick = () => { d.hidden = true; history.replaceState(null,'',location.pathname); };
+  document.getElementById('dl').onclick = () => {
+    const rows = [['site','tier','distance_from_boundary_m','band','latitude','longitude']].concat((HOMES[id]||[]).map(f =>
+      [s.project, f.properties.tier, f.properties.dist_m, f.properties.band, f.geometry.coordinates[1].toFixed(5), f.geometry.coordinates[0].toFixed(5)]));
+    const blob = new Blob([rows.map(r => r.map(v => `"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n')], {type:'text/csv'});
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = s.project.replace(/[^\w]+/g,'_') + '_homes.csv'; a.click();
+  };
+  document.getElementById('panel').scrollTop = 0;
+}
+
+document.getElementById('about').onclick = e => { e.preventDefault();
+  const d = document.getElementById('detail'); d.hidden = false;
+  d.innerHTML = `<h2>About the data</h2>
+  <p class="note"><b>Applications:</b> National Planning Applications dataset (Dept. of Housing, data.gov.ie), filtered for anaerobic digestion, biogas and biomethane applications lodged or decided since 1 Jan 2021, grouped into sites and checked by hand. Status notes add appeal and court outcomes not yet in the national data. The site boundary is the boundary of the latest application.</p>
+  <p class="note"><b>Homes:</b> building footprints from Microsoft Global ML Building Footprints (ODbL), with OpenStreetMap where Microsoft has gaps. Buildings of house size and shape are kept; garages next to a larger building are dropped. <i>Likely home</i> = a house, extension or septic-tank planning application, or an OpenStreetMap house tag, within 25 m. <i>Possible home</i> = house-sized building with no confirmation (may be a farm building). Footprints can be several years old, so recent houses may be missing. Counts are estimates to be checked locally.</p>
+  <p class="note"><b>Distance rings</b> are measured from the site boundary, not the plant buildings. No names, addresses or Eircodes are held.</p>
+  <p class="note">Corrections: open an issue or edit <code>config/projects.csv</code> in the GitHub repository.</p>
+  <div class="btns"><button class="btn" onclick="this.closest('#detail').hidden=true">Close</button></div>`;
+};
+</script>
+</body>
+</html>
