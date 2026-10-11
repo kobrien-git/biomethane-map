@@ -33,6 +33,22 @@
    "source": "Kildare Co. Co. 2560920, ORS"
   },
   {
+   "site_id": "a3c136ef",
+   "file": "camphill.webp",
+   "bounds": [
+    [
+     52.503609,
+     -7.343255
+    ],
+    [
+     52.506168,
+     -7.338647
+    ]
+   ],
+   "title": "Site survey \u2013 items for retention",
+   "source": "Kilkenny Co. Co. 2660583, BEOFS"
+  },
+  {
    "site_id": "2fef0b10",
    "file": "cappanihane.webp",
    "bounds": [
@@ -49,6 +65,22 @@
    "source": "Limerick City & County Council, ORS"
   },
   {
+   "site_id": "236bed90",
+   "file": "college_proteins_nobber.webp",
+   "bounds": [
+    [
+     53.842198,
+     -6.755834
+    ],
+    [
+     53.846931,
+     -6.745572
+    ]
+   ],
+   "title": "Site Plan \u2013 Bund Tank (26013-1001)",
+   "source": "Meath Co. Co. file, Hanley Taite"
+  },
+  {
    "site_id": "347a19ff",
    "file": "corracunna_mitchelstown.webp",
    "bounds": [
@@ -63,6 +95,38 @@
    ],
    "title": "General layout (further information)",
    "source": "Cork Co. Co. 24/6272, further information drawing"
+  },
+  {
+   "site_id": "7b25ad57",
+   "file": "glenbrack.webp",
+   "bounds": [
+    [
+     53.077023,
+     -8.81687
+    ],
+    [
+     53.081039,
+     -8.812003
+    ]
+   ],
+   "title": "Site Layout (GG-19-003, scanned)",
+   "source": "Galway Co. Co. 19/1812, Grealish Glynn & Associates"
+  },
+  {
+   "site_id": "ccf4f972",
+   "file": "glenloughaun.webp",
+   "bounds": [
+    [
+     53.293165,
+     -8.251731
+    ],
+    [
+     53.297111,
+     -8.243682
+    ]
+   ],
+   "title": "Proposed Site Layout (231880-ORS-AR-200)",
+   "source": "Galway Co. Co. 2561691, ORS"
   },
   {
    "site_id": "5e2daf04",
@@ -95,6 +159,38 @@
    ],
    "title": "Existing Site Layout (W25082-CE-01001)",
    "source": "Waterford retention application, Malone O'Regan"
+  },
+  {
+   "site_id": "2d55cb66",
+   "file": "moneylane.webp",
+   "bounds": [
+    [
+     52.784941,
+     -6.193101
+    ],
+    [
+     52.790185,
+     -6.186781
+    ]
+   ],
+   "title": "Proposed Site Layout (241504-ORS-AR-200)",
+   "source": "Wicklow Co. Co. 2560244, ORS"
+  },
+  {
+   "site_id": "77398666",
+   "file": "stackallen.webp",
+   "bounds": [
+    [
+     53.697285,
+     -6.615397
+    ],
+    [
+     53.701555,
+     -6.607495
+    ]
+   ],
+   "title": "Proposed Site Layout Plan (PL-06)",
+   "source": "Meath Co. Co. file, Enviro Farm"
   },
   {
    "site_id": "35534412",
