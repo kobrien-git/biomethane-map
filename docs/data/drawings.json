@@ -1,0 +1,116 @@
+{
+ "drawings": [
+  {
+   "site_id": "16d9631c",
+   "file": "ballynilard_tipperary.webp",
+   "bounds": [
+    [
+     52.464806,
+     -8.205495
+    ],
+    [
+     52.469036,
+     -8.200005
+    ]
+   ],
+   "title": "General Layout of Facility (25060-DR-0101)",
+   "source": "Tipperary Co. Co. 2660893, Kilgallen & Partners"
+  },
+  {
+   "site_id": "65cc4d70",
+   "file": "ballyvass.webp",
+   "bounds": [
+    [
+     52.937295,
+     -6.860564
+    ],
+    [
+     52.942729,
+     -6.854089
+    ]
+   ],
+   "title": "Proposed Site Layout (231239-ORS-AR-200)",
+   "source": "Kildare Co. Co. 2560920, ORS"
+  },
+  {
+   "site_id": "2fef0b10",
+   "file": "cappanihane.webp",
+   "bounds": [
+    [
+     52.431759,
+     -8.755394
+    ],
+    [
+     52.437168,
+     -8.749072
+    ]
+   ],
+   "title": "Proposed Site Layout (231240-ORS-AR-200)",
+   "source": "Limerick City & County Council, ORS"
+  },
+  {
+   "site_id": "347a19ff",
+   "file": "corracunna_mitchelstown.webp",
+   "bounds": [
+    [
+     52.278845,
+     -8.252132
+    ],
+    [
+     52.281571,
+     -8.246801
+    ]
+   ],
+   "title": "General layout (further information)",
+   "source": "Cork Co. Co. 24/6272, further information drawing"
+  },
+  {
+   "site_id": "5e2daf04",
+   "file": "killough_quarry.webp",
+   "bounds": [
+    [
+     52.604724,
+     -7.846947
+    ],
+    [
+     52.608558,
+     -7.839154
+    ]
+   ],
+   "title": "Drawing 5A \u2013 Proposed Site Layout",
+   "source": "Tipperary Co. Co. 2560019, SLR Consulting"
+  },
+  {
+   "site_id": "62d82e34",
+   "file": "killowen.webp",
+   "bounds": [
+    [
+     52.308949,
+     -7.311945
+    ],
+    [
+     52.313542,
+     -7.304479
+    ]
+   ],
+   "title": "Existing Site Layout (W25082-CE-01001)",
+   "source": "Waterford retention application, Malone O'Regan"
+  },
+  {
+   "site_id": "35534412",
+   "file": "thornhill_annaholty_birdhill.webp",
+   "bounds": [
+    [
+     52.734647,
+     -8.458169
+    ],
+    [
+     52.744335,
+     -8.445523
+    ]
+   ],
+   "title": "Proposed Gas Layout (W24054-1006)",
+   "source": "Tipperary Co. Co. 2660621, Malone O'Regan"
+  }
+ ]
+}
