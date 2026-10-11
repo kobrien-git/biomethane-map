@@ -36,9 +36,9 @@ SETTINGS = json.load(open(os.path.join(CFG, 'settings.json'))) if os.path.exists
 BANDS = [(0, 250, '0–250 m'), (250, 500, '250–500 m'), (500, 1000, '500–1,000 m')]
 
 
-def get(url, params=None, data=None, tries=4):
+def get(url, params=None, data=None, tries=4, timeout=180):
     if params: url = url + '?' + urllib.parse.urlencode(params)
-    cmd = ['curl', '-sSL', '--fail', '-m', '180', '--retry', '3', '-A', 'biomethane-map', url]
+    cmd = ['curl', '-sSL', '--fail', '-m', str(timeout), '--retry', '3' if timeout >= 120 else '0', '-A', 'biomethane-map', url]
     if data: cmd += ['--data-urlencode', data]
     for k in range(tries):
         r = subprocess.run(cmd, capture_output=True)
@@ -298,7 +298,8 @@ def main():
     pts = sites.copy()
     pts['geometry'] = [g if g.geom_type == 'Point' else polylabel(max(getattr(g, 'geoms', [g]), key=lambda x: x.area), tolerance=1.0) for g in sites.geometry]
     sites, roses = X.wind(sites, pts.to_crs(4326))
-    foot = {sid: g.unary_union for sid, g in lay.groupby('site_id').geometry} if len(lay) else {}
+    lm = lay[lay['measure'].fillna(True).astype(bool)] if len(lay) and 'measure' in lay.columns else lay
+    foot = {sid: g.unary_union for sid, g in lm.groupby('site_id').geometry} if len(lm) else {}
     homes, rings = [], []; dropped = 0
     add_homes = additions[additions.category.str.lower().str.startswith('home')] if len(additions) else additions
     for i, s in sites.iterrows():

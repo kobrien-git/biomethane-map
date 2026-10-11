@@ -37,7 +37,7 @@ def _arcgis(url, env, fields='*'):
     try:
         d = json.loads(B.get(url + '/query', {'where': '1=1', 'geometry': f'{minx},{miny},{maxx},{maxy}', 'geometryType': 'esriGeometryEnvelope',
                                               'inSR': 2157, 'spatialRel': 'esriSpatialRelIntersects', 'outFields': fields, 'outSR': 2157,
-                                              'f': 'geojson', 'resultRecordCount': 2000}, tries=2))
+                                              'f': 'geojson', 'resultRecordCount': 2000}, tries=2, timeout=60))
         if not d.get('features'): return gpd.GeoDataFrame(geometry=[], crs=2157)
         return gpd.GeoDataFrame.from_features(d['features'], crs=2157)
     except Exception as e:
@@ -160,7 +160,7 @@ def _overpass(bbox):
  nwr["healthcare"~"^(hospital|clinic|doctor|centre)$"]({s},{w},{n},{e});
  nwr["leisure"~"^(pitch|sports_centre|playground)$"]["name"]({s},{w},{n},{e});
  nwr["building"~"^(school|kindergarten|hospital|church|chapel)$"]({s},{w},{n},{e}););out center tags;'''
-    d = json.loads(B.get('https://overpass-api.de/api/interpreter', data='data=' + q, tries=2))
+    d = json.loads(B.get('https://overpass-api.de/api/interpreter', data='data=' + q, tries=1, timeout=45))
     out = []
     for el in d['elements']:
         c = (el.get('lat'), el.get('lon')) if 'lat' in el else (el.get('center', {}).get('lat'), el.get('center', {}).get('lon'))
@@ -249,7 +249,7 @@ def natura_water(sites):
         try:
             minx, miny, maxx, maxy = g.buffer(1000).bounds
             js = json.loads(B.get(EPA_RIVERS, {'service': 'WFS', 'version': '2.0.0', 'request': 'GetFeature', 'typeNames': 'EPA:WFD_RIVERWATERBODIES_CYCLE3',
-                                               'outputFormat': 'application/json', 'srsName': 'EPSG:2157', 'bbox': f'{minx},{miny},{maxx},{maxy},EPSG:2157'}, tries=2))
+                                               'outputFormat': 'application/json', 'srsName': 'EPSG:2157', 'bbox': f'{minx},{miny},{maxx},{maxy},EPSG:2157'}, tries=2, timeout=60))
             if js.get('features'):
                 d = gpd.GeoDataFrame.from_features(js['features'], crs=2157); d['dd'] = d.distance(g); r = d.sort_values('dd').iloc[0]
                 nm = next((r[c] for c in ('NAME', 'Name', 'name', 'EU_NAME', 'SEG_NAME') if c in d.columns and r[c]), 'River water body')
@@ -268,7 +268,7 @@ SECT = ['N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE', 'S', 'SSW', 'SW', 'WSW
 def _rose(lat, lon):
     u = ('https://archive-api.open-meteo.com/v1/archive?' + urllib.parse.urlencode({'latitude': round(lat, 4), 'longitude': round(lon, 4),
          'start_date': '2021-01-01', 'end_date': '2025-12-31', 'hourly': 'wind_direction_10m,wind_speed_10m', 'timezone': 'UTC'}))
-    d = json.loads(B.get(u, tries=2))
+    d = json.loads(B.get(u, tries=1, timeout=45))
     cnt = [0] * 16; sp = [0.0] * 16; calm = 0; n = 0
     for a, v in zip(d['hourly']['wind_direction_10m'], d['hourly']['wind_speed_10m']):
         if a is None or v is None: continue
@@ -328,7 +328,8 @@ def layouts():
 def intl(sites, homes, recs, lay):
     cfg = _json(os.path.join(B.CFG, 'intl_rules.json'), {'rules': []})
     rules = cfg['rules']; rings = []; verdicts = {}
-    foot = {sid: unary_union(g.geometry.tolist()) for sid, g in lay.groupby('site_id')} if len(lay) else {}
+    lm = lay[lay['measure'].fillna(True).astype(bool)] if len(lay) and 'measure' in lay.columns else lay
+    foot = {sid: unary_union(g.geometry.tolist()) for sid, g in lm.groupby('site_id')} if len(lm) else {}
     open_sites = set(lay[lay.get('open', False) == True].site_id) if len(lay) and 'open' in lay.columns else set()
     for _, s in sites.iterrows():
         src = foot.get(s.site_id)
