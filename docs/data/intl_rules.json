@@ -1,5 +1,5 @@
 {
- "_source": "Kevin O'Brien / NBCG, 'International AD Siting and Community Protections' (https://github.com/kobrien-git/nbcg-ad-comparison). Policy information, not legal advice. No distance here is a proven safe distance.",
+ "_source": "Kevin O'Brien / NBCG, 'International AD Siting and Community Protections' (https://kobrien-git.github.io/nbcg-ad-comparison/). Policy information, not legal advice. No distance here is a proven safe distance.",
  "rules": [
   {
    "id": "FR",
@@ -12,7 +12,9 @@
    "colour": "#1f4e9c",
    "scope": "Applies under the authorisation regime at 100 t/day or more. Measured from the installation, excluding raw-material-only storage. Other public receptors are assessed through impact and danger studies, not a fixed distance.",
    "refs": "FRA-REG-001; FRA-SET-001; FRA-SET-002",
-   "source_url": "https://aida.ineris.fr/reglementation/arrete-101109-fixant-regles-techniques-auxquelles-doivent-satisfaire-installations"
+   "source_url": "https://aida.ineris.fr/reglementation/arrete-101109-fixant-regles-techniques-auxquelles-doivent-satisfaire-installations",
+   "measured_from": "The installation itself \u2013 digesters, tanks, gas storage, digestate storage \u2013 but not storage of raw crops only (e.g. silage clamps). Measured to homes lived in by third parties, so the applicant's own house doesn't count.",
+   "page": "https://kobrien-git.github.io/nbcg-ad-comparison/#country-france"
   },
   {
    "id": "DE",
@@ -26,7 +28,9 @@
    "colour": "#b8860b",
    "scope": "Formal permit route from 50 t/day in the relevant category (industrial biological treatment). 500 m where specified facilities are open. The separate agricultural provision is different. Legal floors, not safety guarantees.",
    "refs": "GER-REG-001; GER-SET-001",
-   "source_url": "https://www.verwaltungsvorschriften-im-internet.de/bsvwvbund_18082021_IGI25025005.htm"
+   "source_url": "https://www.verwaltungsvorschriften-im-internet.de/bsvwvbund_18082021_IGI25025005.htm",
+   "measured_from": "The plant's emission sources (reception, tanks, digestate storage, CHP, flare) \u2013 not the land boundary. Measured to existing or planned housing; 500 m where reception, bunkers or digestate storage are open.",
+   "page": "https://kobrien-git.github.io/nbcg-ad-comparison/#country-germany"
   },
   {
    "id": "ON",
@@ -39,7 +43,9 @@
    "colour": "#c0392b",
    "scope": "Rural and agricultural planning guidance (Minimum Distance Separation). Broad installation definition includes storage, loading, flare and separators. Not universal industrial law. Tonnage does not select the route.",
    "refs": "ONT-SET-001; ONT-SET-002; ONT-DEF-001",
-   "source_url": "https://www.ontario.ca/files/2022-03/omafra-minimum-distance-separation-pub-853-en-2020-03-28.pdf"
+   "source_url": "https://www.ontario.ca/files/2022-03/omafra-minimum-distance-separation-pub-853-en-2020-03-28.pdf",
+   "measured_from": "The nearest part of any AD component \u2013 digesters, feedstock and digestate storage, loading and unloading areas, flares and separators. 200 m to homes; 450 m to schools, care settings and settlements.",
+   "page": "https://kobrien-git.github.io/nbcg-ad-comparison/#country-ontario"
   },
   {
    "id": "NBCG",
@@ -53,7 +59,9 @@
    "colour": "#6a3d9a",
    "scope": "Suggested for evaluation by the group - not current Irish law. Measured from the nearest potentially odorous, noisy or hazardous component. 500 m to dwellings where reception, bunkers or digestate storage is open.",
    "refs": "NBCG-SITE-001",
-   "source_url": "https://github.com/kobrien-git/nbcg-ad-comparison"
+   "source_url": "https://kobrien-git.github.io/nbcg-ad-comparison/#discussion-siting-floor",
+   "measured_from": "The nearest potentially odorous, noisy or hazardous component. 300 m to homes (500 m where reception, bunkers or digestate storage are open); 500 m to schools, care settings and other sensitive places.",
+   "page": "https://kobrien-git.github.io/nbcg-ad-comparison/#discussion-siting-floor"
   },
   {
    "id": "DK",
@@ -67,7 +75,9 @@
    "info_only": true,
    "scope": "Component distances on livestock farms, not a universal whole-plant setback from homes. Shown for comparison only; no pass/fail verdict.",
    "refs": "DEN-SET-001; DEN-SET-002",
-   "source_url": "https://github.com/kobrien-git/nbcg-ad-comparison"
+   "source_url": "https://kobrien-git.github.io/nbcg-ad-comparison/#country-denmark",
+   "measured_from": "Specified livestock-farm components only. Not a whole-plant distance from homes.",
+   "page": "https://kobrien-git.github.io/nbcg-ad-comparison/#country-denmark"
   },
   {
    "id": "NL",
@@ -81,7 +91,9 @@
    "info_only": true,
    "scope": "An equipment-to-boundary gas-safety distance, not a dwelling setback. Activity tables add 100 m / 50 m distances for specified activities. Shown for comparison only; no pass/fail verdict.",
    "refs": "NLD-SET-001; NLD-SAF-001",
-   "source_url": "https://github.com/kobrien-git/nbcg-ad-comparison"
+   "source_url": "https://kobrien-git.github.io/nbcg-ad-comparison/#country-netherlands",
+   "measured_from": "A gas bag or liquefied-biogas tank, measured to the site boundary. A gas-safety distance, not a distance from homes.",
+   "page": "https://kobrien-git.github.io/nbcg-ad-comparison/#country-netherlands"
   }
  ]
 }
