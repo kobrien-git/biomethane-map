@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Biomethane Applications Ireland</title>
-<meta name="description" content="Map of anaerobic digestion / biomethane planning applications in Ireland since 2021, with homes within 1 km of each site boundary.">
+<meta name="description" content="Map of anaerobic digestion / biomethane planning applications in Ireland since 2021, with homes, schools and care settings within 1 km, wind, deadlines and other countries' separation distances.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
@@ -90,7 +90,44 @@ table.counts td{font-family:var(--mono)}
   header{padding:10px 16px 8px} h1{font-size:16px}
 }
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+/* ---- additions: deadlines, new, receptors, wind, other countries, door-to-door */
+.badge{display:inline-block;font:600 10.5px var(--sans);padding:1px 6px;border-radius:4px;letter-spacing:.02em;white-space:nowrap}
+.badge.due{background:#fde7e4;color:#9b1c10}.badge.soon{background:#fff2d6;color:#7a4b00}.badge.new{background:#e3f0ff;color:#0b4f9c}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .badge.due{background:#4a1c17;color:#ffb4a8}:root:not([data-theme="light"]) .badge.soon{background:#463410;color:#ffd58a}:root:not([data-theme="light"]) .badge.new{background:#13324f;color:#9ccaff}}
+.site .badges{grid-column:2/4;display:flex;flex-wrap:wrap;gap:4px;margin-top:2px}
+#newbox{padding:10px 16px;border-bottom:1px solid var(--line);background:var(--bg);font-size:12.5px}
+#newbox b{font-size:12px;letter-spacing:.03em;text-transform:uppercase;color:var(--muted)}
+#newbox a{color:var(--accent);cursor:pointer}
+.sect{margin-top:14px;padding-top:10px;border-top:1px solid var(--line)}
+.sect h3{font-size:12px;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);margin:0 0 6px}
+.deadline{border-radius:6px;padding:8px 10px;margin:10px 0 0;font-size:12.5px}
+.deadline.open{background:#fff2d6;color:#5e3b00;border:1px solid #f0c36d}
+.deadline.closed{background:var(--panel);color:var(--muted);border:1px solid var(--line)}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .deadline.open{background:#3b2c0d;color:#ffd58a;border-color:#7a5a17}}
+.deadline b{font-size:13.5px}
+.windrow{display:flex;gap:12px;align-items:center}
+.windrow svg{flex:none}
+.rlist{list-style:none;margin:6px 0 0;padding:0;font-size:12.5px}
+.rlist li{display:flex;gap:8px;align-items:center;padding:3px 0;border-bottom:1px dashed var(--line)}
+.rlist li span.d{margin-left:auto;font:500 11.5px var(--mono);color:var(--muted)}
+.ric{display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:18px;padding:0 3px;box-sizing:border-box;border-radius:9px;color:#fff;font:700 10px var(--sans);border:1.5px solid #fff;box-shadow:0 0 0 1px rgba(0,0,0,.3)}
+.recicon{background:none;border:0}
+.recicon .ric{transform:translate(-50%,-50%);position:absolute}
+.windicon{background:none;border:0}
+table.intl{border-collapse:collapse;width:100%;font-size:12px;margin-top:4px}
+table.intl td{padding:5px 4px;border-bottom:1px solid var(--line);vertical-align:top}
+table.intl td.v{white-space:nowrap;font-weight:600}
+table.intl .why{color:var(--muted);font-size:11.5px}
+.swatch{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px;vertical-align:-1px}
+.ctry label{display:flex;align-items:flex-start;gap:7px;line-height:1.3}
+.ctry label input{margin-top:2px}
+.ctry .hint a{color:var(--accent)}
+.addmode #map{cursor:crosshair}
+.toast{position:fixed;left:50%;top:14px;transform:translateX(-50%);background:#1d2420;color:#fff;padding:8px 14px;border-radius:6px;font-size:13px;z-index:2000;box-shadow:0 2px 10px rgba(0,0,0,.3)}
+.toast button{margin-left:10px;font:inherit;background:none;border:1px solid #fff6;color:#fff;border-radius:4px;padding:2px 8px;cursor:pointer}
+.visited{opacity:.55}
 </style>
+
 </head>
 <body>
 <aside id="panel">
@@ -98,6 +135,7 @@ table.counts td{font-family:var(--mono)}
     <h1>Biomethane &amp; AD planning applications, Ireland</h1>
     <div class="sub" id="sub">Applications lodged or decided since 2021, with homes within 1 km of each site boundary.</div>
   </header>
+  <div id="newbox" hidden></div>
   <div class="controls">
     <input type="search" id="q" placeholder="Search site, county, developer or reference" aria-label="Search sites">
     <div class="chips" id="chips"></div>
@@ -108,282 +146,14 @@ table.counts td{font-family:var(--mono)}
     <a href="data/sites_summary.csv">Download table (CSV)</a>
     <a href="data/site_points.geojson">Sites (GeoJSON)</a>
     <a href="data/homes.geojson">Homes (GeoJSON)</a>
+    <a href="data/receptors.geojson">Schools &amp; care (GeoJSON)</a>
     <a href="#" id="about">About the data</a>
   </footer>
 </aside>
 <main id="map" aria-label="Map"></main>
-
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://unpkg.com/leaflet-simple-map-screenshoter@0.5.0/dist/leaflet-simple-map-screenshoter.js"></script>
-<script>
-// ---- Report form (Google Form owned by the map maintainer). Prefilled with the home's ID and site.
-const FORM = 'https://docs.google.com/forms/d/e/1FAIpQLSeQ6yt1p3A4eeOU-7DVH03bn1wXRUkQcujYXRvA4WqSP3q8pA/viewform';
-const FORM_ID_FIELD = 'entry.667896400', FORM_SITE_FIELD = 'entry.96613515';
-const reportUrl = (id, site) => `${FORM}?usp=pp_url&${FORM_ID_FIELD}=${encodeURIComponent(id)}&${FORM_SITE_FIELD}=${encodeURIComponent(site)}`;
-
-const STATUS = {
-  'Under appeal':'--appeal','Pending decision':'--pending','Granted':'--granted','Refused':'--refused',
-  'No decision recorded':'--nodec','Other':'--other','Pre-application':'--pre'};
-const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
-const col = s => css(STATUS[s] || '--other');
-const fmt = n => (n==null||isNaN(n)) ? '–' : Math.round(n).toLocaleString('en-IE');
-const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-
-// ---- per-viewer settings (browser storage; everything still works if it is unavailable)
-const store = {
-  get(k, d){ try { const v = localStorage.getItem('bm_' + k); return v == null ? d : JSON.parse(v); } catch(e){ return d; } },
-  set(k, v){ try { localStorage.setItem('bm_' + k, JSON.stringify(v)); } catch(e){} }
-};
-const marked = new Set(store.get('marked', []));          // home IDs this viewer marked "not a home"
-const opt = Object.assign({homeSize:4, siteSize:8, names:'auto', hideMarked:false}, store.get('display', {}));
-const saveMarked = () => store.set('marked', [...marked]);
-const saveOpt = () => store.set('display', opt);
-
-const map = L.map('map', {zoomControl:true, preferCanvas:true}).setView([53.4,-8.0], 7);
-const base = {
-  'Street map (OpenStreetMap)': L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,crossOrigin:true,attribution:'© OpenStreetMap contributors'}),
-  'Satellite (Esri)': L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:19,crossOrigin:true,attribution:'Imagery © Esri, Maxar, Earthstar Geographics'}),
-  'Satellite + place names': L.layerGroup([
-     L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:19,crossOrigin:true,attribution:'Imagery © Esri'}),
-     L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}',{maxZoom:19,crossOrigin:true})]),
-  'Topographic (Esri)': L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}',{maxZoom:19,crossOrigin:true,attribution:'© Esri'})
-};
-base['Street map (OpenStreetMap)'].addTo(map);
-
-const lyr = {sites:L.layerGroup(), rings:L.layerGroup(), ringLabels:L.layerGroup(), homes:L.layerGroup(), points:L.layerGroup().addTo(map)};
-const overlays = {'Application sites':lyr.points,'Site boundaries':lyr.sites,'Distance rings (250 / 500 / 1,000 m)':lyr.rings,'Homes within 1 km':lyr.homes};
-L.control.layers(base, overlays, {collapsed:true}).addTo(map);
-L.control.scale({imperial:false}).addTo(map);
-// PNG export keeps the legend and scale bar; hides the buttons and panels.
-if (L.simpleMapScreenshoter) L.simpleMapScreenshoter({position:'topleft',
-  hideElementsWithSelectors:['.leaflet-control-zoom','.leaflet-control-layers','.leaflet-control-simpleMapScreenshoter','.disp','.leaflet-popup'],
-  screenName:() => 'biomethane-map-' + new Date().toISOString().slice(0,10), mimeType:'image/png'}).addTo(map);
-
-// ---- legend
-const legend = L.control({position:'bottomright'});
-legend.onAdd = () => { const d = L.DomUtil.create('div','legend');
-  d.innerHTML = Object.keys(STATUS).map(s => `<div class="row"><span class="dot" style="background:${col(s)}"></span>${s}</div>`).join('') +
-   '<hr style="border:0;border-top:1px solid var(--line);margin:6px 0">' +
-   `<div class="row"><span class="dot" style="background:${css('--home-likely')}"></span>Likely home</div>` +
-   `<div class="row"><span class="dot" style="background:${css('--home-possible')};width:8px;height:8px"></span>Possible home (unverified)</div>` +
-   `<div class="row" id="lg-marked" ${marked.size ? '' : 'hidden'}><span class="dot" style="background:transparent;border:1.5px dashed #777;box-shadow:none"></span>Marked not a home (your view)</div>` +
-   `<div class="row"><span class="ring" style="border-color:#e31a1c"></span>250 m</div><div class="row"><span class="ring" style="border-color:#ff7f00"></span>500 m</div><div class="row"><span class="ring" style="border-color:#e6c300"></span>1,000 m</div>`;
-  return d; };
-legend.addTo(map);
-
-// ---- display panel: marker sizes and labels (handy before exporting a PNG)
-const disp = L.control({position:'topright'});
-disp.onAdd = () => {
-  const d = L.DomUtil.create('div', 'disp leaflet-control');
-  d.innerHTML = `<button aria-expanded="false" id="disp-t">Display ▾</button>
-    <div class="body" id="disp-b" hidden>
-      <label>Home dot size <input type="range" id="o-home" min="2" max="14" step="1" value="${opt.homeSize}"></label>
-      <label>Site marker size <input type="range" id="o-site" min="4" max="20" step="1" value="${opt.siteSize}"></label>
-      <label>Site names
-        <select id="o-names"><option value="auto">Show when zoomed in</option><option value="on">Always show</option><option value="off">Hide</option></select></label>
-      <label class="cb"><input type="checkbox" id="o-hide" ${opt.hideMarked ? 'checked' : ''}> Hide homes I've marked</label>
-      <div class="hint">Set sizes, then use the camera button (top left) to save a PNG. Homes show from zoom 12.</div>
-    </div>`;
-  L.DomEvent.disableClickPropagation(d); L.DomEvent.disableScrollPropagation(d);
-  return d;
-};
-disp.addTo(map);
-document.getElementById('o-names').value = opt.names;
-document.getElementById('disp-t').onclick = e => { const b = document.getElementById('disp-b'), t = e.currentTarget;
-  b.hidden = !b.hidden; t.setAttribute('aria-expanded', !b.hidden); t.textContent = b.hidden ? 'Display ▾' : 'Display ▴'; };
-document.getElementById('o-home').oninput = e => { opt.homeSize = +e.target.value; saveOpt(); styleHomes(); };
-document.getElementById('o-site').oninput = e => { opt.siteSize = +e.target.value; saveOpt(); SITES.forEach(s => s.marker.setRadius(opt.siteSize)); };
-document.getElementById('o-names').onchange = e => { opt.names = e.target.value; saveOpt(); zoomRules(); };
-document.getElementById('o-hide').onchange = e => { opt.hideMarked = e.target.checked; saveOpt(); styleHomes(); };
-
-let SITES = [], RINGS = {}, HOMES = {}, POLYS = {}, HOME_MK = [], RING_LBL = {}, meta = {};
-const active = new Set(Object.keys(STATUS));
-
-Promise.all(['site_points','sites','rings','homes'].map(n => fetch(`data/${n}.geojson`, {cache:'no-cache'}).then(r => r.json())).concat([fetch('data/meta.json', {cache:'no-cache'}).then(r=>r.json()).catch(()=>({}))]))
-.then(([pts, polys, rings, homes, m]) => {
-  meta = m;
-  if (m.last_updated) document.getElementById('sub').textContent = `${pts.features.length} sites · applications lodged or decided since 2021 · updated ${new Date(m.last_updated).toLocaleDateString('en-IE',{day:'numeric',month:'short',year:'numeric'})}`;
-  polys.features.forEach(f => POLYS[f.properties.site_id] = f);
-  rings.features.forEach(f => (RINGS[f.properties.site_id] ||= []).push(f));
-  homes.features.forEach(f => (HOMES[f.properties.site_id] ||= []).push(f));
-  SITES = pts.features.map(f => ({...f.properties, lat:f.geometry.coordinates[1], lon:f.geometry.coordinates[0]}));
-  // site boundaries
-  L.geoJSON(polys, {style: f => ({color:col(f.properties.status), weight:2, fillOpacity:.18}), onEachFeature:(f,l)=>l.on('click',()=>select(f.properties.site_id))}).addTo(lyr.sites);
-  // rings + labels (label text is recomputed so it reflects homes the viewer has marked)
-  const rc = {250:'#e31a1c',500:'#ff7f00',1000:'#e6c300'};
-  L.geoJSON(rings, {style: f => ({color:rc[f.properties.distance_m], weight:1.6, dashArray:'6 5', fill:false})}).addTo(lyr.rings);
-  rings.features.forEach(f => {
-    const p = f.properties, b = L.geoJSON(f).getBounds();
-    const t = L.tooltip({permanent:true, direction:'top', className:'ringlbl', offset:[0,0]}).setLatLng([b.getNorth(), b.getCenter().lng]).addTo(lyr.ringLabels);
-    (RING_LBL[p.site_id] ||= []).push({d:p.distance_m, t});
-  });
-  // homes
-  homes.features.forEach(f => {
-    const p = f.properties;
-    const mk = L.circleMarker([f.geometry.coordinates[1], f.geometry.coordinates[0]], {color:'#fff', weight:1, fillOpacity:1});
-    mk.feature = f;
-    mk.bindTooltip(() => `${esc(p.tier)} · ${fmt(p.dist_m)} m from ${esc(p.project)} boundary${marked.has(p.home_id) ? ' · marked not a home' : ''}`);
-    mk.bindPopup(() => homePopup(f), {maxWidth:280});
-    HOME_MK.push(mk);
-  });
-  styleHomes();
-  // site markers
-  SITES.forEach(s => {
-    s.marker = L.circleMarker([s.lat, s.lon], {radius:opt.siteSize, color:'#fff', weight:2, fillColor:col(s.status), fillOpacity:1})
-      .bindTooltip(esc(s.project), {className:'lbl', direction:'right', offset:[8,0]}).on('click', () => select(s.site_id));
-    s.marker.addTo(lyr.points);
-  });
-  updateRingLabels(); buildChips(); renderList(); zoomRules();
-  const h = location.hash.slice(1); if (h) select(h);
-});
-
-// ---- counts, honouring homes this viewer has marked
-function counts(id){
-  const c = {250:[0,0], 500:[0,0], 1000:[0,0]}; let mine = 0;
-  (HOMES[id] || []).forEach(f => {
-    const p = f.properties;
-    if (marked.has(p.home_id)) { mine++; return; }
-    const k = p.tier === 'Likely home' ? 0 : 1;
-    [250,500,1000].forEach(b => { if (p.dist_m <= b) c[b][k]++; });
-  });
-  return {c, mine};
-}
-function updateRingLabels(){
-  Object.entries(RING_LBL).forEach(([id, arr]) => { const {c} = counts(id);
-    arr.forEach(({d, t}) => t.setContent(`${d.toLocaleString('en-IE')} m · ${c[d][0]} likely + ${c[d][1]} possible homes`)); });
-}
-function styleHomes(){
-  const r = opt.homeSize;
-  HOME_MK.forEach(mk => {
-    const p = mk.feature.properties, likely = p.tier === 'Likely home', m = marked.has(p.home_id);
-    if (m && opt.hideMarked) { lyr.homes.removeLayer(mk); return; }
-    lyr.homes.addLayer(mk);
-    mk.setRadius(likely ? r : Math.max(2, r - 1));
-    mk.setStyle(m ? {color:'#666', weight:1.5, dashArray:'2 2', fillColor:'#fff', fillOpacity:.35}
-                  : {color:'#fff', weight: r >= 8 ? 1.5 : 1, dashArray:null, fillColor:css(likely ? '--home-likely' : '--home-possible'), fillOpacity:1});
-  });
-  const lg = document.getElementById('lg-marked'); if (lg) lg.hidden = !marked.size;
-}
-function homePopup(f){
-  const p = f.properties, m = marked.has(p.home_id), [lon, lat] = f.geometry.coordinates;
-  const g = `https://www.google.com/maps/@${lat},${lon},120m/data=!3m1!1e3`;
-  return `<div class="hp"><b>${esc(p.tier)}</b> · ${fmt(p.dist_m)} m from the ${esc(p.project)} site boundary
-    <div class="id">ID ${esc(p.home_id || '–')}</div>
-    ${m ? `<div class="ok">You marked this as not a home. It is left out of your counts; it will be removed for everyone once reviewed.</div>` : ''}
-    <div class="row">
-      ${!p.home_id ? '' : m ? `<button data-act="undo" data-id="${esc(p.home_id)}">Undo</button>`
-          : `<button class="warn" data-act="report" data-id="${esc(p.home_id)}" data-site="${esc(p.project)}">Not a home? Report it</button>`}
-      <a class="hb" href="${g}" target="_blank" rel="noopener">Check on satellite ↗</a>
-    </div></div>`;
-}
-map.on('popupopen', e => {
-  e.popup.getElement().querySelectorAll('button[data-act]').forEach(b => b.onclick = () => {
-    const id = b.dataset.id; if (!id) return;
-    if (b.dataset.act === 'report') { marked.add(id); window.open(reportUrl(id, b.dataset.site), '_blank', 'noopener'); }
-    else marked.delete(id);
-    saveMarked(); styleHomes(); updateRingLabels(); renderList();
-    const cur = document.getElementById('detail').dataset.site; if (cur) select(cur, false);
-    e.popup.setContent(homePopup(e.popup._source.feature)); map.fire('popupopen', {popup:e.popup});
-  });
-});
-
-function zoomRules(){
-  const z = map.getZoom();
-  const toggle = (g, on) => on ? map.addLayer(g) : map.removeLayer(g);
-  toggle(lyr.sites, z >= 11); toggle(lyr.rings, z >= 12); toggle(lyr.ringLabels, z >= 14); toggle(lyr.homes, z >= 12);
-  const perm = opt.names === 'on' || (opt.names === 'auto' && z >= 9);
-  SITES.forEach(s => { s.marker.unbindTooltip().bindTooltip(esc(s.project), {className:'lbl', direction:'right', offset:[8,0], permanent: perm}); });
-}
-map.on('zoomend', zoomRules);
-
-function buildChips(){
-  const c = document.getElementById('chips');
-  c.innerHTML = Object.keys(STATUS).map(s => {
-    const n = SITES.filter(x => x.status === s).length;
-    return n ? `<button class="chip" aria-pressed="true" data-s="${s}"><span class="dot" style="background:${col(s)}"></span>${s} <b>${n}</b></button>` : '';
-  }).join('');
-  c.querySelectorAll('.chip').forEach(b => b.onclick = () => {
-    const s = b.dataset.s, on = b.getAttribute('aria-pressed') === 'true';
-    b.setAttribute('aria-pressed', !on); on ? active.delete(s) : active.add(s); renderList();
-  });
-}
-document.getElementById('q').addEventListener('input', renderList);
-
-function renderList(){
-  const q = document.getElementById('q').value.toLowerCase().trim();
-  const vis = SITES.filter(s => active.has(s.status) && (!q || [s.project,s.county,s.developer,s.application_refs,s.appeal_refs].join(' ').toLowerCase().includes(q)));
-  SITES.forEach(s => { const on = vis.includes(s); on ? lyr.points.addLayer(s.marker) : lyr.points.removeLayer(s.marker); });
-  vis.sort((a,b) => (a.county||'').localeCompare(b.county||'') || a.project.localeCompare(b.project));
-  document.getElementById('list').innerHTML = vis.map(s => { const {c} = counts(s.site_id); return `
-    <div class="site" role="listitem" tabindex="0" data-id="${s.site_id}">
-      <span class="dot" style="background:${col(s.status)}"></span>
-      <span class="name">${esc(s.project)}</span>
-      <span class="n" title="Likely + possible homes within 1 km">${fmt(c[1000][0] + c[1000][1])} homes</span>
-      <span class="meta">${esc(s.county)} · ${esc(s.status)}${s.application_refs ? ' · ' + esc(s.application_refs) : ''}${s.planning_link ? ` · <a class="plink" href="${esc(s.planning_link)}" target="_blank" rel="noopener">Planning file ↗</a>` : ''}</span>
-    </div>`; }).join('') || '<p class="note" style="padding:16px">No sites match.</p>';
-  document.querySelectorAll('.site').forEach(el => { el.onclick = e => { if (e.target.closest('a')) return; select(el.dataset.id); }; el.onkeydown = e => { if (e.key === 'Enter') select(el.dataset.id); }; });
-}
-
-function select(id, move = true){
-  const s = SITES.find(x => x.site_id === id); if (!s) return;
-  history.replaceState(null, '', '#' + id);
-  const poly = POLYS[id];
-  if (move) { if (poly) map.fitBounds(L.geoJSON(poly).getBounds().pad(1.2), {maxZoom:15}); else map.setView([s.lat, s.lon], 14); }
-  const row = (k, v) => v ? `<dt>${k}</dt><dd>${v}</dd>` : '';
-  const {c, mine} = counts(id);
-  const [l250,p250] = c[250], [l500,p500] = c[500], [l1k,p1k] = c[1000];
-  const gmaps = `https://www.google.com/maps/@${s.lat},${s.lon},800m/data=!3m1!1e3`;
-  const d = document.getElementById('detail'); d.hidden = false; d.dataset.site = id;
-  d.innerHTML = `
-    <h2>${esc(s.project)}</h2>
-    <span class="pill" style="background:${col(s.status)}">${esc(s.status)}</span>
-    ${s.planning_link ? `<a class="btn primary plan" href="${esc(s.planning_link)}" target="_blank" rel="noopener">Open planning file${s.application_refs ? ' · ' + esc(String(s.application_refs).split(';')[0]) : ''} ↗</a>` : ''}
-    <dl class="kv">
-      ${row('Status', esc(s.status_note))}
-      ${row('County', esc(s.county))}
-      ${row('Type', esc(s.type))}
-      ${row('Developer', esc(s.developer))}
-      ${row('Planning refs', esc(s.application_refs))}
-      ${row('Appeal refs', esc(s.appeal_refs))}
-      ${row('Lodged', s.latest_lodged && s.latest_lodged !== 'None' ? esc(s.latest_lodged) : '')}
-      ${row('Decision', s.latest_decision && s.latest_decision !== 'None' ? esc(s.latest_decision) : '')}
-      ${row('Scale', s.tonnes_per_year ? esc(s.tonnes_per_year) + ' tonnes / year' : '')}
-      ${row('Site area', s.site_area_ha ? s.site_area_ha + ' ha' : '')}
-    </dl>
-    <table class="counts" aria-label="Homes within distance of site boundary">
-      <thead><tr><th>Within</th><th>Likely</th><th>Possible</th><th>Total</th></tr></thead>
-      <tbody>
-        <tr><td>250 m</td><td>${fmt(l250)}</td><td>${fmt(p250)}</td><td>${fmt(l250+p250)}</td></tr>
-        <tr><td>500 m</td><td>${fmt(l500)}</td><td>${fmt(p500)}</td><td>${fmt(l500+p500)}</td></tr>
-        <tr><td>1,000 m</td><td>${fmt(l1k)}</td><td>${fmt(p1k)}</td><td>${fmt(l1k+p1k)}</td></tr>
-      </tbody>
-    </table>
-    ${mine ? `<div class="mine">Excludes ${mine} building${mine > 1 ? 's' : ''} you marked as not a home (pending review).</div>` : ''}
-    <div class="note">Distances measured from the site boundary. ${s.approx_location ? '<b>Site boundary not published – location approximate.</b> ' : ''}Homes are estimated from building footprints and are unverified. Spot one that isn't a home? Click it and choose <b>Not a home? Report it</b>.</div>
-    <div class="btns">
-      <a class="btn" href="${gmaps}" target="_blank" rel="noopener">Google satellite ↗</a>
-      <button class="btn" id="dl">Download homes (CSV)</button>
-      <button class="btn" id="close">Close</button>
-    </div>`;
-  document.getElementById('close').onclick = () => { d.hidden = true; delete d.dataset.site; history.replaceState(null,'',location.pathname); };
-  document.getElementById('dl').onclick = () => {
-    const rows = [['site','home_id','tier','distance_from_boundary_m','band','latitude','longitude']].concat((HOMES[id]||[]).filter(f => !marked.has(f.properties.home_id)).map(f =>
-      [s.project, f.properties.home_id, f.properties.tier, f.properties.dist_m, f.properties.band, f.geometry.coordinates[1].toFixed(5), f.geometry.coordinates[0].toFixed(5)]));
-    const blob = new Blob([rows.map(r => r.map(v => `"${String(v ?? '').replace(/"/g,'""')}"`).join(',')).join('\n')], {type:'text/csv'});
-    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = s.project.replace(/[^\w]+/g,'_') + '_homes.csv'; a.click();
-  };
-  if (move) document.getElementById('panel').scrollTop = 0;
-}
-
-document.getElementById('about').onclick = e => { e.preventDefault();
-  const d = document.getElementById('detail'); d.hidden = false; delete d.dataset.site;
-  d.innerHTML = `<h2>About the data</h2>
-  <p class="note"><b>Applications:</b> National Planning Applications dataset (Dept. of Housing, data.gov.ie), filtered for anaerobic digestion, biogas and biomethane applications lodged or decided since 1 Jan 2021, grouped into sites and checked by hand. Status notes add appeal and court outcomes not yet in the national data. The site boundary is the boundary of the latest application.</p>
-  <p class="note"><b>Homes:</b> building footprints from Microsoft Global ML Building Footprints (ODbL), with OpenStreetMap where Microsoft has gaps. Buildings of house size and shape are kept; garages next to a larger building are dropped. <i>Likely home</i> = a house, extension or septic-tank planning application, or an OpenStreetMap house tag, within 25 m. <i>Possible home</i> = house-sized building with no confirmation (may be a farm building). Footprints can be several years old, so recent houses may be missing. Counts are estimates to be checked locally.</p>
-  <p class="note"><b>Corrections:</b> click any home dot and choose <i>Not a home? Report it</i>. It drops out of your own counts straight away (saved in this browser only) and a short form opens. Reports are reviewed, and approved ones are removed for everyone at the next daily update.</p>
-  <p class="note"><b>Distance rings</b> are measured from the site boundary, not the plant buildings. No names, addresses or Eircodes are held.</p>
-  <div class="btns"><button class="btn" onclick="this.closest('#detail').hidden=true">Close</button></div>`;
-};
-</script>
+<script src="common.js"></script>
+<script src="app.js"></script>
 </body>
 </html>

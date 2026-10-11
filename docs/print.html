@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Site sheet</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+:root{--fg:#1d2420;--muted:#5b665f;--line:#d5dbd5;--accent:#2f6b4f}
+html,body{margin:0;background:#fff;color:var(--fg);font:12.5px/1.4 system-ui,-apple-system,'Segoe UI',sans-serif}
+.page{max-width:780px;margin:0 auto;padding:18px 20px}
+.bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px;padding:10px;background:#f2f5f2;border-radius:8px}
+.bar button,.bar a{font:600 13px system-ui;padding:7px 12px;border-radius:6px;border:1px solid var(--accent);background:var(--accent);color:#fff;cursor:pointer;text-decoration:none}
+.bar a.alt,.bar button.alt{background:#fff;color:var(--accent)}
+.bar span{color:var(--muted);font-size:12px}
+h1{font-size:19px;margin:0 0 2px}
+h2{font-size:13px;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);margin:14px 0 6px;border-bottom:1px solid var(--line);padding-bottom:3px}
+.pill{display:inline-block;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:700;color:#fff}
+.meta{color:var(--muted);margin:4px 0 8px}
+#map{height:400px;border:1px solid var(--line);border-radius:4px}
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+table{border-collapse:collapse;width:100%}
+td,th{padding:3px 5px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+th{font-size:11px;color:var(--muted);font-weight:600}
+td.n{text-align:right;font-variant-numeric:tabular-nums}
+.box{border:1.5px solid #e0b354;background:#fff7e3;border-radius:6px;padding:8px 10px;margin:8px 0}
+.tick{width:16px;height:16px;border:1.5px solid #333;display:inline-block;border-radius:2px}
+.num{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;background:#0b63ce;color:#fff;font:700 10px system-ui;border:1.5px solid #fff;box-shadow:0 0 0 1px #0004}
+.numicon{background:none;border:0}
+.small{font-size:11px;color:var(--muted)}
+.ric{display:inline-flex;align-items:center;justify-content:center;min-width:16px;height:16px;padding:0 2px;border-radius:8px;color:#fff;font:700 9px system-ui}
+a{color:var(--accent)}
+.foot{margin-top:14px;font-size:10.5px;color:var(--muted);border-top:1px solid var(--line);padding-top:6px}
+@media print{ .bar{display:none} .page{padding:0;max-width:none} @page{size:A4;margin:12mm} #map{height:110mm} h2{break-after:avoid} tr{break-inside:avoid} .pb{break-before:page} }
+@media (max-width:640px){ .cols{grid-template-columns:1fr} }
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="bar"><button onclick="window.print()">Print / save as PDF</button><a class="alt" id="other" href="#"></a><a class="alt" href="index.html" id="back">Back to map</a>
+    <span>Tip: in the print dialog choose "Save as PDF".</span></div>
+  <div id="out">Loading…</div>
+</div>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="common.js"></script>
+<script>
+const {esc, fmt, col, dmy, daysTo} = BM;
+const q = new URLSearchParams(location.search), id = q.get('site'), mode = q.get('mode') === 'canvass' ? 'canvass' : 'report';
+document.getElementById('other').href = `print.html?site=${id}&mode=${mode === 'canvass' ? 'report' : 'canvass'}`;
+document.getElementById('other').textContent = mode === 'canvass' ? 'Site report instead' : 'Walking list instead';
+document.getElementById('back').href = 'index.html#' + id;
+
+BM.load().then(D => {
+  const s = D.SITES.find(x => x.site_id === id); const out = document.getElementById('out');
+  if (!s) { out.textContent = 'Site not found.'; return; }
+  document.title = (mode === 'canvass' ? 'Walking list – ' : 'Site report – ') + s.project;
+  const marked = new Set(BM.store.get('marked', []));
+  const homes = (D.HOMES[id] || []).filter(f => !marked.has(f.properties.home_id));
+  const recs = (D.RECS[id] || []).slice().sort((a, b) => a.properties.dist_m - b.properties.dist_m);
+  const w = D.WIND[id], pv = BM.prevailing(w);
+  const tpy = +String(s.tonnes_per_year || '').replace(/,/g, '');
+  const cnt = b => [homes.filter(f => f.properties.dist_m <= b && f.properties.tier !== 'Possible home').length, homes.filter(f => f.properties.dist_m <= b && f.properties.tier === 'Possible home').length];
+  const o = daysTo(s.obs_deadline), a = daysTo(s.appeal_deadline);
+  const deadline = s.obs_deadline && o >= 0 ? `<div class="box"><b>Submissions to the council close ${dmy(s.obs_deadline)}</b> (${o} day${o === 1 ? '' : 's'} left). Anyone can make a written submission (€20) within 5 weeks of the council receiving the application. Indicative – confirm on the planning file.</div>`
+    : s.appeal_deadline && a >= 0 && s.status !== 'Under appeal' ? `<div class="box"><b>Appeal deadline ${dmy(s.appeal_deadline)}</b> (${a} days left) – 4 weeks from the council's decision. Usually only those who made a submission can appeal. Indicative – confirm on the planning file.</div>`
+    : s.status === 'Under appeal' ? `<div class="box">Under appeal to An Coimisiún Pleanála${s.appeal_refs ? ' (' + esc(s.appeal_refs) + ')' : ''}. Observations are due within 4 weeks of the appeal being lodged – check pleanala.ie.</div>` : '';
+  const head = `<h1>${esc(s.project)}</h1><span class="pill" style="background:${col(s.status)}">${esc(s.status)}</span>
+    <div class="meta">${esc(s.county)} · ${esc(s.developer || '')} · Planning ref ${esc(s.application_refs || '–')}${s.appeal_refs ? ' · Appeal ' + esc(s.appeal_refs) : ''}<br>
+    ${s.planning_link ? `Planning file: <a href="${esc(s.planning_link)}">${esc(s.planning_link)}</a>` : ''}</div>${deadline}`;
+
+  if (mode === 'canvass') {
+    const order = BM.route(homes);
+    out.innerHTML = head + `<h2>Map – numbered homes within 1 km (walking order)</h2><div id="map"></div>
+      <p class="small">Numbers follow a suggested walking order starting nearest the site. Blue = likely home, light blue = possible (may not be a home), orange = added by a map user. Prevailing wind from the ${pv ? pv.from : '–'}.</p>
+      <h2>Key facts to share</h2>
+      <ul>
+        <li>${fmt(cnt(250)[0] + cnt(250)[1])} homes within 250 m, ${fmt(cnt(500)[0] + cnt(500)[1])} within 500 m and ${fmt(cnt(1000)[0] + cnt(1000)[1])} within 1 km of the site boundary (estimates).</li>
+        ${tpy ? `<li>Proposed scale: about ${fmt(tpy)} tonnes of feedstock a year (≈${fmt(tpy / 365)} t/day).</li>` : ''}
+        ${pv ? `<li>Prevailing wind from the ${pv.from}: air from the plant most often drifts ${pv.towards}. ${fmt(s.downwind_homes_1km)} homes within 1 km are downwind at least 10% of the time.</li>` : ''}
+        ${recs.filter(f => BM.SENSITIVE.includes(f.properties.category)).slice(0, 4).map(f => `<li>${esc(f.properties.name)} (${esc(f.properties.category.toLowerCase())}) is ${fmt(f.properties.dist_m)} m away.</li>`).join('')}
+        ${(s.intl.rules || []).filter(v => v.verdict === 'fail').slice(0, 3).map(v => { const r = D.RULES.find(x => x.id === v.id); return `<li>${esc(r.country)}'s ${v.distance_m} m separation would not be met (${v.homes} homes${v.sensitive ? ', ' + v.sensitive + ' sensitive sites' : ''} closer, measured from the ${esc(s.intl.measured_from)}).</li>`; }).join('')}
+      </ul>
+      <h2 class="pb">Walking list</h2>
+      <table><thead><tr><th>#</th><th>Type</th><th class="n">From site</th><th class="n">Downwind</th><th>Directions</th><th>Called</th><th>Interested</th><th>Notes (no personal details)</th></tr></thead><tbody>
+      ${order.map((f, i) => { const p = f.properties, [lon, lat] = f.geometry.coordinates;
+        return `<tr><td><b>${i + 1}</b></td><td>${esc(p.tier.replace(' home', ''))}</td><td class="n">${fmt(p.dist_m)} m</td><td class="n">${p.downwind_pct != null ? p.downwind_pct + '%' : '–'}</td>
+          <td><a href="${BM.directions(lat, lon)}">${lat.toFixed(5)}, ${lon.toFixed(5)}</a></td><td><span class="tick"></span></td><td><span class="tick"></span></td><td style="width:28%"></td></tr>`; }).join('')}
+      </tbody></table>
+      <p class="small">Respect residents' privacy: don't record names or contact details on shared copies. Visit ticks on the website stay in your own browser.</p>`;
+    const m = L.map('map', {zoomControl:false, attributionControl:true}).setView([s.lat, s.lon], 14);
+    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {maxZoom:19, crossOrigin:true, attribution:'Imagery © Esri'}).addTo(m);
+    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Transportation/MapServer/tile/{z}/{y}/{x}', {maxZoom:19, crossOrigin:true}).addTo(m);
+    const poly = D.POLYS[id]; const g = L.featureGroup().addTo(m);
+    if (poly) L.geoJSON(poly, {style:{color:col(s.status), weight:2.5, fillOpacity:.15}}).addTo(g); else L.circleMarker([s.lat, s.lon], {radius:8, color:'#fff', fillColor:col(s.status), fillOpacity:1}).addTo(g);
+    (D.RINGS[id] || []).forEach(f => L.geoJSON(f, {style:{color:{250:'#e31a1c',500:'#ff7f00',1000:'#e6c300'}[f.properties.distance_m], weight:1.5, dashArray:'6 5', fill:false}}).addTo(m));
+    order.forEach((f, i) => { const p = f.properties, bg = p.tier === 'Reported home' ? '#ff9800' : p.tier === 'Likely home' ? '#0b63ce' : '#5fa8f5';
+      L.marker([f.geometry.coordinates[1], f.geometry.coordinates[0]], {icon:L.divIcon({className:'numicon', html:`<span class="num" style="background:${bg}">${i + 1}</span>`, iconSize:[18,18], iconAnchor:[9,9]})}).addTo(g); });
+    m.fitBounds(g.getBounds().pad(0.05));
+  } else {
+    const [l250, p250] = cnt(250), [l500, p500] = cnt(500), [l1k, p1k] = cnt(1000);
+    out.innerHTML = head + `<div id="map"></div>
+      <div class="cols">
+        <div><h2>Homes near the site boundary</h2>
+          <table><tr><th>Within</th><th class="n">Likely</th><th class="n">Possible</th><th class="n">Total</th></tr>
+          ${[[250,l250,p250],[500,l500,p500],[1000,l1k,p1k]].map(([d, l, p]) => `<tr><td>${fmt(d)} m</td><td class="n">${l}</td><td class="n">${p}</td><td class="n"><b>${l + p}</b></td></tr>`).join('')}</table>
+          <p class="small">Estimated from building footprints; "possible" may include farm buildings.</p>
+          <h2>Plant</h2>
+          <table>
+            <tr><td>Scale</td><td>${tpy ? `${fmt(tpy)} t/yr (≈${fmt(tpy / 365)} t/day)<br><span class="small">${esc(s.tonnes_source || '')}</span>` : 'Not confirmed'}</td></tr>
+            <tr><td>Site area</td><td>${s.site_area_ha ? s.site_area_ha + ' ha' : '–'}</td></tr>
+            <tr><td>Lodged</td><td>${dmy(s.latest_lodged) || '–'}</td></tr><tr><td>Decision</td><td>${dmy(s.latest_decision) || '–'}</td></tr>
+            <tr><td>Status note</td><td>${esc(s.status_note)}</td></tr></table></div>
+        <div><h2>Wind</h2>${w ? `<div style="display:flex;gap:10px;align-items:center">${BM.rose(w, 130)}<div>Prevailing from the <b>${pv.from}</b> (${pv.pct}% of hours). Air most often drifts <b>${pv.towards}</b>.<br>${fmt(s.downwind_homes_1km)} homes within 1 km downwind ≥10% of the time.<div class="small">ERA5 2021–2025 via Open-Meteo</div></div></div>` : '–'}
+          <h2>Schools, care, health & community (1 km)</h2>
+          ${recs.length ? `<table>${recs.slice(0, 12).map(f => { const p = f.properties, [c, l] = BM.RECEPTORS[p.category] || BM.RECEPTORS['Other sensitive'];
+            return `<tr><td><span class="ric" style="background:${c}">${l}</span> ${esc(p.name)}</td><td class="n">${fmt(p.dist_m)} m</td></tr>`; }).join('')}</table>` : '<p class="small">None found in official or OpenStreetMap data.</p>'}
+          <h2>Water & habitats</h2>
+          <table><tr><td>SAC</td><td>${s.sac_name ? esc(s.sac_name) + ' – ' + (s.sac_m === 0 ? 'touches site' : fmt(s.sac_m) + ' m') : 'None within 15 km'}</td></tr>
+          <tr><td>SPA</td><td>${s.spa_name ? esc(s.spa_name) + ' – ' + (s.spa_m === 0 ? 'touches site' : fmt(s.spa_m) + ' m') : 'None within 15 km'}</td></tr>
+          <tr><td>River</td><td>${s.river_name ? esc(s.river_name) + ' – ' + (s.river_m === 0 ? 'on/beside site' : fmt(s.river_m) + ' m') : 'None within 1 km'}</td></tr></table></div>
+      </div>
+      <h2>Other countries' separation distances</h2>
+      <table><tr><th>Rule</th><th>Result</th><th>Detail</th></tr>
+      ${D.RULES.map(r => { const v = (s.intl.rules || []).find(x => x.id === r.id); if (!v) return ''; const [t, c] = BM.VERDICT[v.verdict] || ['', '#666'];
+        return `<tr><td>${esc(r.short)}</td><td style="color:${c};font-weight:700;white-space:nowrap">${t}</td><td>${esc(BM.verdictText(r, v, s))}</td></tr>`; }).join('')}</table>
+      <p class="small">Measured from the ${esc(s.intl.measured_from || 'site boundary')}. Scope and measuring rules differ between countries. Source: NBCG international comparison (${BM.RESEARCH}). Not legal advice; no distance is a proven safe distance.</p>`;
+    const m = L.map('map', {zoomControl:false}).setView([s.lat, s.lon], 14);
+    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {maxZoom:19, crossOrigin:true, attribution:'Imagery © Esri'}).addTo(m);
+    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}', {maxZoom:19, crossOrigin:true}).addTo(m);
+    const g = L.featureGroup().addTo(m), poly = D.POLYS[id];
+    if (poly) L.geoJSON(poly, {style:{color:col(s.status), weight:2.5, fillOpacity:.15}}).addTo(g); else L.circleMarker([s.lat, s.lon], {radius:8, color:'#fff', fillColor:col(s.status), fillOpacity:1}).addTo(g);
+    (D.RINGS[id] || []).forEach(f => L.geoJSON(f, {style:{color:{250:'#e31a1c',500:'#ff7f00',1000:'#e6c300'}[f.properties.distance_m], weight:1.5, dashArray:'6 5', fill:false}}).addTo(g));
+    (D.LAYOUT[id] || []).forEach(f => L.geoJSON(f, {style:{color:'#ff5722', weight:1, fillOpacity:.4}}).addTo(m));
+    homes.forEach(f => L.circleMarker([f.geometry.coordinates[1], f.geometry.coordinates[0]], {radius:f.properties.tier === 'Possible home' ? 3 : 4, color:'#fff', weight:1, fillColor:f.properties.tier === 'Reported home' ? '#ff9800' : f.properties.tier === 'Likely home' ? '#0b63ce' : '#8ec3ff', fillOpacity:1}).addTo(m));
+    recs.forEach(f => { const [c, l] = BM.RECEPTORS[f.properties.category] || BM.RECEPTORS['Other sensitive']; L.marker([f.geometry.coordinates[1], f.geometry.coordinates[0]], {icon:L.divIcon({className:'numicon', html:`<span class="ric" style="background:${c}">${l}</span>`, iconSize:[16,16], iconAnchor:[8,8]})}).addTo(m); });
+    m.fitBounds(g.getBounds());
+  }
+  out.insertAdjacentHTML('beforeend', `<div class="foot">Biomethane & AD planning applications map · data updated ${dmy(D.meta.last_updated)} · https://kobrien-git.github.io/biomethane-map/#${id} · Estimates from open data; check the planning file. Homes: Microsoft/OSM building footprints. Wind: ERA5 via Open-Meteo. Schools: Dept. of Education; OpenStreetMap.</div>`);
+});
+</script>
+</body>
+</html>
