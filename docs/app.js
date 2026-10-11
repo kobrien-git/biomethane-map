@@ -5,7 +5,7 @@ const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).
 // ---- per-viewer settings (this browser only)
 const marked = new Set(store.get('marked', []));            // homes this viewer marked "not a home"
 const visited = store.get('visited', {});                   // door-to-door ticks: {home_id: 'visited'|'interested'|'nothome'}
-const opt = Object.assign({homeSize:4, siteSize:8, names:'auto', hideMarked:false, rules:[]}, store.get('display', {}));
+const opt = Object.assign({homeSize:4, siteSize:8, names:'auto', hideMarked:false, rules:[], drwOpacity:0.85}, store.get('display', {}));
 const saveOpt = () => store.set('display', opt);
 
 // ---- map & basemaps (default: satellite with place names)
@@ -19,16 +19,44 @@ const base = {
 };
 const baseName = store.get('base', 'Satellite + place names');
 (base[baseName] || base['Satellite + place names']).addTo(map);
-map.on('baselayerchange', e => store.set('base', e.name));
 
 const lyr = {sites:L.layerGroup(), rings:L.layerGroup(), ringLabels:L.layerGroup(), homes:L.layerGroup(), points:L.layerGroup().addTo(map),
-             recs:L.layerGroup(), wind:L.layerGroup(), layout:L.layerGroup(), intl:L.layerGroup()};
-const overlays = {'Application sites':lyr.points, 'Site boundaries':lyr.sites, 'Distance rings (250 / 500 / 1,000 m)':lyr.rings,
-  'Homes within 1 km':lyr.homes, 'Schools, care, health & community':lyr.recs, 'Wind roses':lyr.wind, 'Plant layout (traced)':lyr.layout};
-const userOff = new Set(store.get('off', []));             // overlays the viewer switched off
-L.control.layers(base, overlays, {collapsed:true}).addTo(map);
-map.on('overlayremove', e => { if (e.name) { userOff.add(e.name); store.set('off', [...userOff]); } });
-map.on('overlayadd', e => { if (e.name) { userOff.delete(e.name); store.set('off', [...userOff]); } });
+             recs:L.layerGroup(), wind:L.layerGroup(), layout:L.layerGroup(), intl:L.layerGroup(), drawings:L.layerGroup()};
+// Layer list: ticks are the viewer's choice; zoom limits only decide whether a ticked layer is drawn (never untick it).
+const LAYERS = [
+  {group:'Sites', name:'Application sites', g:lyr.points, min:0},
+  {group:'Sites', name:'Site boundaries', g:lyr.sites, min:11},
+  {group:'Sites', name:'Distance rings (250 / 500 / 1,000 m)', g:lyr.rings, min:12},
+  {group:'People nearby', name:'Homes within 1 km', g:lyr.homes, min:12},
+  {group:'People nearby', name:'Schools, care, health & community', g:lyr.recs, min:12},
+  {group:'The plant', name:'Planning drawings (georeferenced)', g:lyr.drawings, min:14},
+  {group:'The plant', name:'Plant layout (traced)', g:lyr.layout, min:13},
+  {group:'Weather', name:'Wind roses', g:lyr.wind, min:13, max:15}];
+const userOff = new Set(store.get('off', []));             // layers the viewer switched off
+const lyrCtl = L.control({position:'topright'});
+lyrCtl.onAdd = () => {
+  const d = L.DomUtil.create('div', 'disp lyrs leaflet-control');
+  const groups = [...new Set(LAYERS.map(l => l.group))];
+  const cur = base[baseName] ? baseName : 'Satellite + place names';
+  d.innerHTML = `<button aria-expanded="false" id="lyr-t">Layers ▾</button><div class="body" id="lyr-b" hidden>
+    <div class="lgh">Base map</div>` + Object.keys(base).map(n => `<label class="cb"><input type="radio" name="basemap" value="${esc(n)}" ${n === cur ? 'checked' : ''}><span>${esc(n)}</span></label>`).join('') +
+    groups.map(gp => `<div class="lgh">${gp}</div>` + LAYERS.filter(l => l.group === gp).map((l, i) => `<label class="cb" data-l="${esc(l.name)}">
+      <input type="checkbox" ${userOff.has(l.name) ? '' : 'checked'}><span>${esc(l.name)}<small class="zh"></small></span></label>`).join('')).join('') +
+    `<div class="lgh">Other countries' separation distances</div><div id="ctry-b"></div>
+    <div class="hint">Greyed layers appear as you zoom in. Your choices are remembered in this browser.</div></div>`;
+  L.DomEvent.disableClickPropagation(d); L.DomEvent.disableScrollPropagation(d); return d;
+};
+lyrCtl.addTo(map);
+document.querySelectorAll('#lyr-b input[name=basemap]').forEach(i => i.onchange = () => {
+  Object.values(base).forEach(b => map.removeLayer(b)); base[i.value].addTo(map); store.set('base', i.value); });
+document.querySelectorAll('#lyr-b label[data-l] input').forEach(i => i.onchange = () => {
+  const n = i.closest('label').dataset.l; i.checked ? userOff.delete(n) : userOff.add(n); store.set('off', [...userOff]); zoomRules(); });
+function layerHints(z){
+  document.querySelectorAll('#lyr-b label[data-l]').forEach(lb => { const l = LAYERS.find(x => x.name === lb.dataset.l);
+    const out = z < l.min || (l.max && z > l.max);
+    lb.classList.toggle('dim', out);
+    lb.querySelector('.zh').textContent = out ? (z < l.min ? ' – zoom in to see' : ' – zoom out to see') : ''; });
+}
 L.control.scale({imperial:false}).addTo(map);
 if (L.simpleMapScreenshoter) L.simpleMapScreenshoter({position:'topleft',
   hideElementsWithSelectors:['.leaflet-control-zoom','.leaflet-control-layers','.leaflet-control-simpleMapScreenshoter','.disp','.leaflet-popup','.addbtn'],
@@ -67,18 +95,12 @@ disp.onAdd = () => {
       <label>Site names
         <select id="o-names"><option value="auto">Show when zoomed in</option><option value="on">Always show</option><option value="off">Hide</option></select></label>
       <label class="cb"><input type="checkbox" id="o-hide" ${opt.hideMarked ? 'checked' : ''}> Hide homes I've marked</label>
+      <label>Planning drawing opacity <input type="range" id="o-drw" min="0.2" max="1" step="0.05" value="${opt.drwOpacity}"></label>
       <div class="hint">Set sizes, then use the camera button (top left) to save a PNG. Homes show from zoom 12.</div>
     </div>`;
   L.DomEvent.disableClickPropagation(d); L.DomEvent.disableScrollPropagation(d); return d;
 };
 disp.addTo(map);
-const ctry = L.control({position:'topright'});
-ctry.onAdd = () => {
-  const d = L.DomUtil.create('div', 'disp ctry leaflet-control');
-  d.innerHTML = `<button aria-expanded="false" id="ctry-t">Other countries' rules ▾</button><div class="body" id="ctry-b" hidden></div>`;
-  L.DomEvent.disableClickPropagation(d); L.DomEvent.disableScrollPropagation(d); return d;
-};
-ctry.addTo(map);
 const addCtl = L.control({position:'topleft'});
 addCtl.onAdd = () => { const d = L.DomUtil.create('div', 'leaflet-bar addbtn');
   d.innerHTML = `<a href="#" title="Add a missing home, school, crèche or care home" role="button" style="width:auto;padding:0 8px;font:600 12px var(--sans);line-height:30px">+ Add missing</a>`;
@@ -87,13 +109,15 @@ addCtl.addTo(map);
 
 function toggler(btnId, bodyId, label){
   document.getElementById(btnId).onclick = e => { const b = document.getElementById(bodyId), t = e.currentTarget;
-    b.hidden = !b.hidden; t.setAttribute('aria-expanded', !b.hidden); t.textContent = label + (b.hidden ? ' ▾' : ' ▴'); };
+    b.hidden = !b.hidden; t.setAttribute('aria-expanded', !b.hidden); t.textContent = label + (b.hidden ? ' ▾' : ' ▴');
+    document.body.classList.toggle('panel-open', [...document.querySelectorAll('.disp .body')].some(x => !x.hidden)); };
 }
-toggler('disp-t', 'disp-b', 'Display'); toggler('ctry-t', 'ctry-b', "Other countries' rules");
+toggler('lyr-t', 'lyr-b', 'Layers'); toggler('disp-t', 'disp-b', 'Display');
 document.getElementById('o-names').value = opt.names;
 document.getElementById('o-home').oninput = e => { opt.homeSize = +e.target.value; saveOpt(); styleHomes(); };
 document.getElementById('o-site').oninput = e => { opt.siteSize = +e.target.value; saveOpt(); D.SITES.forEach(s => s.marker.setRadius(opt.siteSize)); };
 document.getElementById('o-names').onchange = e => { opt.names = e.target.value; saveOpt(); zoomRules(); };
+document.getElementById('o-drw').oninput = e => { opt.drwOpacity = +e.target.value; saveOpt(); (D?.DRW_LYR || []).forEach(o => o.setOpacity(opt.drwOpacity)); };
 document.getElementById('o-hide').onchange = e => { opt.hideMarked = e.target.checked; saveOpt(); styleHomes(); };
 
 // ---- add a missing home / sensitive building
@@ -146,6 +170,9 @@ BM.load().then(data => {
   // traced plant layouts
   if (D.raw.lay.features.length) L.geoJSON(D.raw.lay, {style:{color:'#ff5722', weight:1.5, fillColor:'#ff5722', fillOpacity:.35},
     onEachFeature:(f, l) => l.bindTooltip(`${esc(f.properties.label || f.properties.kind || 'Structure')}${f.properties.open ? ' (open)' : ''}`)}).addTo(lyr.layout);
+  // georeferenced planning drawings (each image loads only when zoomed in near its site)
+  D.DRW_LYR = D.DRAWINGS.map(d => { const o = L.imageOverlay('drawings/' + d.file, d.bounds, {opacity:opt.drwOpacity, interactive:false, alt:d.title || 'Planning drawing'});
+    o.meta = d; return o; });
   // other countries' rings
   D.RULE_LYR = {};
   D.RULES.forEach(r => { D.RULE_LYR[r.id] = L.geoJSON({type:'FeatureCollection', features:D.raw.intlRings.features.filter(f => f.properties.rule === r.id)},
@@ -228,15 +255,21 @@ function refreshAfterChange(){ styleHomes(); updateRingLabels(); renderList(); c
 
 function zoomRules(){
   const z = map.getZoom(), want = (g, name, on) => { on && !userOff.has(name) ? map.addLayer(g) : map.removeLayer(g); };
-  want(lyr.sites, 'Site boundaries', z >= 11); want(lyr.rings, 'Distance rings (250 / 500 / 1,000 m)', z >= 12); want(lyr.ringLabels, 'Distance rings (250 / 500 / 1,000 m)', z >= 14);
-  want(lyr.homes, 'Homes within 1 km', z >= 12); want(lyr.recs, 'Schools, care, health & community', z >= 12); want(lyr.wind, 'Wind roses', z >= 13 && z <= 15);
-  want(lyr.layout, 'Plant layout (traced)', z >= 13);
+  LAYERS.forEach(l => want(l.g, l.name, z >= l.min && (!l.max || z <= l.max)));
+  want(lyr.ringLabels, 'Distance rings (250 / 500 / 1,000 m)', z >= 14);
+  layerHints(z); showDrawings();
   applyRules();
   const perm = opt.names === 'on' || (opt.names === 'auto' && z >= 9);
   D && D.SITES.forEach(s => { s.marker.unbindTooltip().bindTooltip(esc(s.project), {className:'lbl', direction:'right', offset:[8,0], permanent: perm && opt.names !== 'off'}); });
   if (D) drawLegend();
 }
 map.on('zoomend', zoomRules);
+function showDrawings(){
+  if (!D || !D.DRW_LYR) return;
+  const on = map.hasLayer(lyr.drawings), vb = map.getBounds().pad(0.3);
+  D.DRW_LYR.forEach(o => { (on && vb.intersects(o.getBounds())) ? lyr.drawings.addLayer(o) : lyr.drawings.removeLayer(o); });
+}
+map.on('moveend', showDrawings);
 
 // ---- deadlines
 function deadlineOf(s){
@@ -339,6 +372,7 @@ function select(id, move = true){
       </tbody>
     </table>
     ${mine ? `<div class="mine">Excludes ${mine} building${mine > 1 ? 's' : ''} you marked as not a home.</div>` : ''}
+    ${D.DRAWINGS.filter(x => x.site_id === id).map(x => `<div class="drwnote"><b>Planning drawing on the map:</b> ${esc(x.title)}. <a href="#" data-drw="${esc(x.file)}">Zoom to it</a> · fade it under <b>Display</b>.<br><span class="note">Fitted to the red-line boundary, accurate to a few metres. Source: ${esc(x.source)}</span></div>`).join('')}
     <div class="note">Distances from the site boundary. ${s.approx_location ? '<b>Site boundary not published – location approximate.</b> ' : ''}Homes are estimated from building footprints. Click a dot to report one that isn't a home, or use <b>+ Add missing</b> on the map.</div>
 
     ${w ? `<div class="sect"><h3>Wind</h3><div class="windrow">${BM.rose(w, 118, {grid:css('--muted'), text:css('--fg')})}
@@ -359,7 +393,7 @@ function select(id, move = true){
     ${intl ? `<div class="sect"><h3>Would it meet other countries' separation distances?</h3>
       <table class="intl">${intl}</table>
       <div class="note" style="margin-top:6px">Measured from the ${esc(s.intl.measured_from || 'site boundary')}${s.intl.measured_from === 'site boundary' ? ' – the plant itself may be further away, so treat "Would not meet" as a prompt to check the layout' : ''}. Scope and measuring rules differ by country; not legal advice and not a safe distance.
-      <a href="${BM.RESEARCH}" target="_blank" rel="noopener">Sources ↗</a> · Show rings with <b>Other countries' rules</b> on the map.</div></div>` : ''}
+      <a href="${BM.RESEARCH}" target="_blank" rel="noopener">Sources ↗</a> · Show the rings under <b>Layers</b> on the map.</div></div>` : ''}
 
     <div class="sect"><h3>Door to door</h3>
       <div class="note">Tools for visiting nearby homes. Visit ticks stay in this browser only; nothing about residents is stored.</div>
@@ -381,6 +415,11 @@ function select(id, move = true){
       [s.project, f.properties.home_id, f.properties.tier, f.properties.dist_m, f.properties.downwind_pct ?? '', f.geometry.coordinates[1].toFixed(5), f.geometry.coordinates[0].toFixed(5)]));
     BM.download(s.project.replace(/[^\w]+/g,'_') + '_homes.csv', rows.map(r => r.map(v => `"${String(v ?? '').replace(/"/g,'""')}"`).join(',')).join('\n'), 'text/csv'); };
   document.getElementById('gpx').onclick = () => BM.download(s.project.replace(/[^\w]+/g,'_') + '_homes.gpx', BM.gpx(s.project, BM.route(live())), 'application/gpx+xml');
+  d.querySelectorAll('a[data-drw]').forEach(a => a.onclick = e => { e.preventDefault();
+    const o = D.DRW_LYR.find(x => x.meta.file === a.dataset.drw); if (!o) return;
+    userOff.delete('Planning drawings (georeferenced)'); store.set('off', [...userOff]);
+    document.querySelectorAll('#lyr-b label[data-l]').forEach(lb => { if (lb.dataset.l === 'Planning drawings (georeferenced)') lb.querySelector('input').checked = true; });
+    map.fitBounds(o.getBounds(), {maxZoom:18}); map.once('moveend', () => { zoomRules(); }); });
   if (move) document.getElementById('panel').scrollTop = 0;
 }
 
@@ -390,6 +429,7 @@ document.getElementById('about').onclick = e => { e.preventDefault();
   <p class="note"><b>Applications:</b> National Planning Applications dataset (Dept. of Housing, data.gov.ie), filtered for anaerobic digestion, biogas and biomethane applications lodged or decided since 1 Jan 2021, grouped into sites and checked by hand. Status notes add appeal and court outcomes. Tonnage comes from the planning description or the group's tracker (source shown). Refreshed daily.</p>
   <p class="note"><b>Deadlines</b> are indicative: submissions within 5 weeks of the council receiving an application; appeals within 4 weeks of the decision. Always confirm on the planning file.</p>
   <p class="note"><b>Homes:</b> Microsoft Global ML Building Footprints (ODbL) with OpenStreetMap where Microsoft has gaps; house-sized buildings are kept. <i>Likely</i> = residential planning record or OpenStreetMap house tag nearby; <i>Possible</i> = unconfirmed. Map users can report buildings that aren't homes and add missing homes; these apply at the next daily update (the maintainer can reverse any).</p>
+  <p class="note"><b>Planning drawings & plant layouts:</b> site layout drawings from the public planning files, fitted to each application's red-line boundary (typically within 1–3 m) and shown as a see-through layer when zoomed in. The orange "traced" shapes are the tanks and buildings read off those drawings, used to measure distances from the plant itself. Drawings remain the applicants' and councils' public documents; always check the planning file for the latest revision.</p>
   <p class="note"><b>Schools, care & community:</b> Dept. of Education school lists, HSE hospitals, OpenStreetMap, plus additions from map users. <b>SAC/SPA:</b> NPWS. <b>Rivers:</b> EPA WFD river water bodies. <b>Wind:</b> ERA5 reanalysis 2021–2025 via Open-Meteo (CC BY 4.0).</p>
   <p class="note"><b>Other countries' rules:</b> from the NBCG international comparison (<a href="${BM.RESEARCH}" target="_blank" rel="noopener">sources</a>). Policy information, not legal advice; no distance is a proven safe distance.</p>
   <p class="note">No names, addresses or Eircodes are held.</p>

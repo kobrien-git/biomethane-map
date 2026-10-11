@@ -31,10 +31,10 @@ const BM = (() => {
 
   async function load(){
     const get = (n, d) => fetch('data/' + n, {cache:'no-cache'}).then(r => r.ok ? r.json() : d).catch(() => d);
-    const [pts, polys, rings, homes, recs, intlRings, rules, wind, lay, meta] = await Promise.all([
+    const [pts, polys, rings, homes, recs, intlRings, rules, wind, lay, meta, drw] = await Promise.all([
       get('site_points.geojson'), get('sites.geojson'), get('rings.geojson'), get('homes.geojson'),
       get('receptors.geojson', {features:[]}), get('intl_rings.geojson', {features:[]}), get('intl_rules.json', {rules:[]}),
-      get('wind.json', {}), get('layouts.geojson', {features:[]}), get('meta.json', {})]);
+      get('wind.json', {}), get('layouts.geojson', {features:[]}), get('meta.json', {}), get('drawings.json', {drawings:[]})]);
     const by = (fc) => { const o = {}; fc.features.forEach(f => (o[f.properties.site_id] ||= []).push(f)); return o; };
     const SITES = pts.features.map(f => {
       const p = {...f.properties, lat:f.geometry.coordinates[1], lon:f.geometry.coordinates[0]};
@@ -42,7 +42,7 @@ const BM = (() => {
       return p; });
     const POLYS = {}; polys.features.forEach(f => POLYS[f.properties.site_id] = f);
     return {SITES, POLYS, RINGS:by(rings), HOMES:by(homes), RECS:by(recs), INTL:by(intlRings), RULES:rules.rules || [], RULES_META:rules,
-            WIND:wind, LAYOUT:by(lay), meta, raw:{polys, rings, homes, recs, intlRings, lay}};
+            WIND:wind, LAYOUT:by(lay), DRAWINGS:drw.drawings || [], meta, raw:{polys, rings, homes, recs, intlRings, lay}};
   }
 
   // ---- wind rose (SVG). Petals point to where the wind comes FROM.
