@@ -1,46 +1,46 @@
-project,county,planning_authority,application_refs,type,developer,status_override,status_note
-"Corracunna, Mitchelstown",Cork,Cork County Council,24/6272,New AD/biomethane plant,Nephin Renewable Gas Corracunna Ltd,Under appeal,Granted by Cork Co. Co. Nov 2025 – under appeal to An Coimisiún Pleanála (PL04.500541)
-"Central Grid Injection, Mitchelstown (GNI)",Cork,Cork County Council,19/6089,Gas grid injection facility,Gas Networks Ireland,Granted,Granted (ABP-307394-20) – construction commenced 2025
-"Deerpark, Mogeely",Cork,Cork County Council,25/6068,New AD/biomethane plant,,,
-"Inchera, Little Island",Cork,Cork County Council,23/5586;25/5034,Permitted plant – amendment/completion,Stream BioEnergy,,
-"Gubbeen, Schull",Cork,Cork County Council,22/94;22/207;23/153,On-farm biogas,,,
-"Barryshall, Timoleague",Cork,Cork County Council,21/6597,Existing plant – extension,,,
-"Maylin, Newtowncunningham",Donegal,Donegal County Council,2350686,New AD/biomethane plant,,Granted,Refused by Council 2023; granted on appeal (ABP-317749-23)
-"Coolaghy, Raphoe",Donegal,Donegal County Council,2351481,Existing plant – revisions,,,
-"Coxtown/Tonagh, Carrigans",Donegal,Donegal County Council,2560609;2560848,Existing plant – alterations,,,
-"Country Crest, Lusk",Dublin (Fingal),Fingal County Council,F24A/1162E,New AD/biomethane plant,,Granted,Refused by Council Feb 2025; granted on appeal (ABP-322098-25)
-"Glenbrack, Gort",Galway,Galway County Council,191812,New AD/biomethane plant,Sustainable Bio-Energy Ltd,Under appeal,Refused 2020; High Court quashed refusal; remitted to An Coimisiún Pleanála (ABP-320207) – decision pending
-"Glenloughaun, Ballinasloe",Galway,Galway County Council,2561691,New AD/biomethane plant,,,
-"Dromkeen West, Causeway",Kerry,Kerry County Council,21984;22228,New AD/biomethane plant,Sandford Energy Ltd,,
-"Gorteen Lower, Nurney",Kildare,Kildare County Council,201117;2331;2370;23894,Existing plant – modifications,,,
-"Lackaghmore, Monasterevin",Kildare,Kildare County Council,221035,New AD/biomethane plant,,Granted,Granted 2023 – appeal (317610-23) withdrawn
-"Ballyvass, Castledermot",Kildare,Kildare County Council,2560920,New AD/biomethane plant,Cycle0 (IE) Ltd,,
-"Ballyconra, Ballyragget",Kilkenny,Kilkenny County Council,22687,New AD/biomethane plant,,,
-"Camphill, Ballytobin",Kilkenny,Kilkenny County Council,2660395;2660516;2660552;2660583,Existing plant – retention,BEOFS Ltd,,
-"Cúil na Móna, Portlaoise",Laois,Laois County Council,19530,New renewable gas facility,,,
-"Killuragh, Pallasgreen",Limerick,Limerick County Council,227012,Extension of duration,,,
-"Cappanihane, Bruree",Limerick,Limerick County Council,2560239,New AD/biomethane plant,Cycle0 (IE) Ltd,,
-"Oberstown, Ardee",Louth,Louth County Council,2360175,New AD/biomethane plant,,,
-Lisglennon/Rathrooe,Mayo,Mayo County Council,2193,New AD/biomethane plant,,,Site boundary includes gas pipeline route – home counts inflated
-"Lislackagh, Swinford",Mayo,Mayo County Council,22571;23338,New AD/biomethane plant,Moy Valley Biogas Ltd,,
-"Rossmeen, Kells",Meath,Meath County Council,21143;21476;21545,New AD/biomethane plant,,No decision recorded,"Lodged 3 times in 2021, no decision recorded – likely invalid/withdrawn"
-"Wilkinstown, Navan",Meath,Meath County Council,211470,Composting + AD – extension of duration,,,
-"Lunderstown, Duleek",Meath,Meath County Council,212189;212347,New AD/biomethane plant,,,
-"College Proteins, Nobber",Meath,Meath County Council,221214;2360349;2560414;2660893,New AD plant at rendering site,College Proteins,,
-"Curragh, Carnaross",Meath,Meath County Council,221597;221632,New AD/biomethane plant,Local Power Ltd,Granted,Granted 2023 – appeal (ABP-316047-23) withdrawn
-"Stackallen, Slane",Meath,Meath County Council,24273;24333,New AD/biomethane plant,,,
-R189 site (Magherna…),Monaghan,Monaghan County Council,2560496;2660018,New AD/biomethane plant,,,
-"Tullycallick, Glaslough",Monaghan,Monaghan County Council,259012,On-farm biogas,,,
-"Ballyduff, Tullamore",Offaly,Offaly County Council,20321,New AD/biomethane plant,Strategic Power Ltd,Other,Refused by Council 2021; granted on appeal; permission quashed by High Court (zoning)
-"Bellmount, Ferbane",Offaly,Offaly County Council,2460339,New AD plant,,,
-"Sandymount Farms, Ballingarry, Roscrea",Tipperary,Tipperary County Council,201340;2630,New AD/biomethane plant,Robert Clarke,Other,Granted 2021 (201340); extension of duration refused 2026
-"Derryville, Moyne",Tipperary,Tipperary County Council,20816;2260395,Existing plant + BioProducts campus,,,
-"Former Lisheen Mine, Moyne",Tipperary,Tipperary County Council,2460936,New AD/biomethane plant,Nua Bioenergy,,
-"Killough Quarry, Holycross",Tipperary,Tipperary County Council,2560019,New AD/biomethane plant,Roadstone Ltd,,
-"Thornhill & Annaholty, Birdhill",Tipperary,Tipperary County Council,2560984;2561056;2660621,New AD/biomethane plant,Annaholty Green Energy Ltd,Pending decision,Earlier applications invalid; re-lodged Jun 2026 (2660621) – decision pending
-"Ballynilard, Tipperary Town",Tipperary,Tipperary County Council,2660031;2660893,New AD/biomethane plant,Nephin Renewable Gas Ballynilard Ltd,Pending decision,2660031 declared invalid (Mar 2026); re-lodged Sep 2026 (2660893) – decision pending
-"Killowen, Portlaw",Waterford,Waterford City and County Council,20761;24226;2660581;2660636,Existing plant – expansion/retention,Ormonde Organics Ltd,,
-"Curraghnagarraha, Carrick-on-Suir",Waterford,Waterford City and County Council,2460536,New AD/biomethane plant,,,
-"Knocknaglogh Upper, Aglish",Waterford,Waterford City and County Council,2560281;2560321,On-farm biogas,,,
-"Moneydurtlow, Tombrack",Wexford,Wexford County Council,20151267;20160469,New AD plant,,,
-"Moneylane, Arklow",Wicklow,Wicklow County Council,2560244,New AD/biomethane plant,,,
+project,county,planning_authority,application_refs,type,developer,status_override,status_note,tonnes_per_year,tonnes_source
+"Corracunna, Mitchelstown",Cork,Cork County Council,24/6272,New AD/biomethane plant,Nephin Renewable Gas Corracunna Ltd,Under appeal,Granted by Cork Co. Co. Nov 2025 – under appeal to An Coimisiún Pleanála (PL04.500541),90000,Planning file 24/6272 / EIAR
+"Central Grid Injection, Mitchelstown (GNI)",Cork,Cork County Council,19/6089,Gas grid injection facility,Gas Networks Ireland,Granted,Granted (ABP-307394-20) – construction commenced 2025,,
+"Deerpark, Mogeely",Cork,Cork County Council,25/6068,New AD/biomethane plant,,,,,
+"Inchera, Little Island",Cork,Cork County Council,23/5586;25/5034,Permitted plant – amendment/completion,Stream BioEnergy,,,90000,Planning description
+"Gubbeen, Schull",Cork,Cork County Council,22/94;22/207;23/153,On-farm biogas,,,,,
+"Barryshall, Timoleague",Cork,Cork County Council,21/6597,Existing plant – extension,,,,,
+"Maylin, Newtowncunningham",Donegal,Donegal County Council,2350686,New AD/biomethane plant,,Granted,Refused by Council 2023; granted on appeal (ABP-317749-23),,
+"Coolaghy, Raphoe",Donegal,Donegal County Council,2351481,Existing plant – revisions,,,,,
+"Coxtown/Tonagh, Carrigans",Donegal,Donegal County Council,2560609;2560848,Existing plant – alterations,,,,,
+"Country Crest, Lusk",Dublin (Fingal),Fingal County Council,F24A/1162E,New AD/biomethane plant,,Granted,Refused by Council Feb 2025; granted on appeal (ABP-322098-25),,
+"Glenbrack, Gort",Galway,Galway County Council,191812,New AD/biomethane plant,Sustainable Bio-Energy Ltd,Under appeal,Refused 2020; High Court quashed refusal; remitted to An Coimisiún Pleanála (ABP-320207) – decision pending,90000,Biogas Planning Tracker
+"Glenloughaun, Ballinasloe",Galway,Galway County Council,2561691,New AD/biomethane plant,,,,,
+"Dromkeen West, Causeway",Kerry,Kerry County Council,21984;22228,New AD/biomethane plant,Sandford Energy Ltd,,,,
+"Gorteen Lower, Nurney",Kildare,Kildare County Council,201117;2331;2370;23894,Existing plant – modifications,,,,,
+"Lackaghmore, Monasterevin",Kildare,Kildare County Council,221035,New AD/biomethane plant,,Granted,Granted 2023 – appeal (317610-23) withdrawn,165000,Planning description
+"Ballyvass, Castledermot",Kildare,Kildare County Council,2560920,New AD/biomethane plant,Cycle0 (IE) Ltd,,,90000,Biogas Planning Tracker
+"Ballyconra, Ballyragget",Kilkenny,Kilkenny County Council,22687,New AD/biomethane plant,,,,,
+"Camphill, Ballytobin",Kilkenny,Kilkenny County Council,2660395;2660516;2660552;2660583,Existing plant – retention,BEOFS Ltd,,,,
+"Cúil na Móna, Portlaoise",Laois,Laois County Council,19530,New renewable gas facility,,,,,
+"Killuragh, Pallasgreen",Limerick,Limerick County Council,227012,Extension of duration,,,,,
+"Cappanihane, Bruree",Limerick,Limerick County Council,2560239,New AD/biomethane plant,Cycle0 (IE) Ltd,,,90000,Biogas Planning Tracker
+"Oberstown, Ardee",Louth,Louth County Council,2360175,New AD/biomethane plant,,,,,
+Lisglennon/Rathrooe,Mayo,Mayo County Council,2193,New AD/biomethane plant,,,Site boundary includes gas pipeline route – home counts inflated,,
+"Lislackagh, Swinford",Mayo,Mayo County Council,22571;23338,New AD/biomethane plant,Moy Valley Biogas Ltd,,,,
+"Rossmeen, Kells",Meath,Meath County Council,21143;21476;21545,New AD/biomethane plant,,No decision recorded,"Lodged 3 times in 2021, no decision recorded – likely invalid/withdrawn",,
+"Wilkinstown, Navan",Meath,Meath County Council,211470,Composting + AD – extension of duration,,,,,
+"Lunderstown, Duleek",Meath,Meath County Council,212189;212347,New AD/biomethane plant,,,,,
+"College Proteins, Nobber",Meath,Meath County Council,221214;2360349;2560414;2660893,New AD plant at rendering site,College Proteins,,,50000,Planning description
+"Curragh, Carnaross",Meath,Meath County Council,221597;221632,New AD/biomethane plant,Local Power Ltd,Granted,Granted 2023 – appeal (ABP-316047-23) withdrawn,70000,Biogas Planning Tracker
+"Stackallen, Slane",Meath,Meath County Council,24273;24333,New AD/biomethane plant,,,,,
+R189 site (Magherna…),Monaghan,Monaghan County Council,2560496;2660018,New AD/biomethane plant,,,,99000,"Planning description (99,000 t/yr poultry manure plus other feedstock - minimum)"
+"Tullycallick, Glaslough",Monaghan,Monaghan County Council,259012,On-farm biogas,,,,,
+"Ballyduff, Tullamore",Offaly,Offaly County Council,20321,New AD/biomethane plant,Strategic Power Ltd,Other,Refused by Council 2021; granted on appeal; permission quashed by High Court (zoning),50000,Biogas Planning Tracker
+"Bellmount, Ferbane",Offaly,Offaly County Council,2460339,New AD plant,,,,,
+"Sandymount Farms, Ballingarry, Roscrea",Tipperary,Tipperary County Council,201340;2630,New AD/biomethane plant,Robert Clarke,Other,Granted 2021 (201340); extension of duration refused 2026,29800,Planning description
+"Derryville, Moyne",Tipperary,Tipperary County Council,20816;2260395,Existing plant + BioProducts campus,,,,,
+"Former Lisheen Mine, Moyne",Tipperary,Tipperary County Council,2460936,New AD/biomethane plant,Nua Bioenergy,,,,
+"Killough Quarry, Holycross",Tipperary,Tipperary County Council,2560019,New AD/biomethane plant,Roadstone Ltd,,,105000,Biogas Planning Tracker
+"Thornhill & Annaholty, Birdhill",Tipperary,Tipperary County Council,2560984;2561056;2660621,New AD/biomethane plant,Annaholty Green Energy Ltd,Pending decision,Earlier applications invalid; re-lodged Jun 2026 (2660621) – decision pending,50000,Biogas Planning Tracker (2560984)
+"Ballynilard, Tipperary Town",Tipperary,Tipperary County Council,2660031;2660893,New AD/biomethane plant,Nephin Renewable Gas Ballynilard Ltd,Pending decision,2660031 declared invalid (Mar 2026); re-lodged Sep 2026 (2660893) – decision pending,90000,Biogas Planning Tracker
+"Killowen, Portlaw",Waterford,Waterford City and County Council,20761;24226;2660581;2660636,Existing plant – expansion/retention,Ormonde Organics Ltd,,,80000,"Planning description (40,000 to 80,000 t/yr)"
+"Curraghnagarraha, Carrick-on-Suir",Waterford,Waterford City and County Council,2460536,New AD/biomethane plant,,,,,
+"Knocknaglogh Upper, Aglish",Waterford,Waterford City and County Council,2560281;2560321,On-farm biogas,,,,,
+"Moneydurtlow, Tombrack",Wexford,Wexford County Council,20151267;20160469,New AD plant,,,,,
+"Moneylane, Arklow",Wicklow,Wicklow County Council,2560244,New AD/biomethane plant,,,,,
