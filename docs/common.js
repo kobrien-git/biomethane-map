@@ -11,7 +11,7 @@ const BM = (() => {
   const SECT = ['N','NNE','NE','ENE','E','ESE','SE','SSE','S','SSW','SW','WSW','W','WNW','NW','NNW'];
   const FORM_REMOVE = 'https://docs.google.com/forms/d/e/1FAIpQLSeQ6yt1p3A4eeOU-7DVH03bn1wXRUkQcujYXRvA4WqSP3q8pA/viewform';
   const FORM_ADD = 'https://docs.google.com/forms/d/e/1FAIpQLSc2xuCaQHZcKnEpbf5iZCkTC0taxOvpwi9WLYt9W8IyqXLLFA/viewform';
-  const RESEARCH = 'https://github.com/kobrien-git/nbcg-ad-comparison';
+  const RESEARCH = 'https://kobrien-git.github.io/nbcg-ad-comparison/';
 
   const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
   const fmt = n => (n==null||n===''||isNaN(n)) ? '–' : Math.round(n).toLocaleString('en-IE');
@@ -21,6 +21,14 @@ const BM = (() => {
   const daysTo = iso => iso ? Math.round((new Date(iso + 'T00:00:00') - today()) / 864e5) : null;
 
   const reportRemoveUrl = (id, site) => `${FORM_REMOVE}?usp=pp_url&entry.667896400=${encodeURIComponent(id)}&entry.96613515=${encodeURIComponent(site)}`;
+  // Silent submissions straight into the Google Forms (no approval step; the daily update applies them for everyone).
+  const post = (form, fields) => fetch(form.replace('/viewform', '/formResponse'), {method:'POST', mode:'no-cors', body:new URLSearchParams(fields)}).then(() => true).catch(() => false);
+  const REMOVE_REASONS = ['Farm or agricultural building', 'Commercial, industrial or community building', 'Garage, shed or outbuilding of a house already counted', 'Derelict or demolished', 'No building here'];
+  const ADD_TYPES = ['Home (lived in)', 'School', 'Creche or childcare', 'Nursing or care home', 'Health centre or hospital', 'Other sensitive place (sports ground, church, community hall)'];
+  const removeHome = (id, site, reason, undo) => post(FORM_REMOVE, {'entry.667896400':id, 'entry.96613515':undo ? 'UNDO' : site,
+    'entry.1232506106':undo ? REMOVE_REASONS[0] : reason, 'entry.1240421585':undo ? 'Undo: this is a home' : ''});
+  const addPlace = (lat, lon, site, type, name) => post(FORM_ADD, {'entry.751238912':lat.toFixed(5) + ', ' + lon.toFixed(5), 'entry.1784884230':site || '',
+    'entry.1469452492':type, 'entry.1825738653':name || ''});
   const reportAddUrl = (lat, lon, site) => `${FORM_ADD}?usp=pp_url&entry.751238912=${encodeURIComponent(lat.toFixed(5) + ', ' + lon.toFixed(5))}&entry.1784884230=${encodeURIComponent(site || '')}`;
   const directions = (lat, lon) => `https://www.google.com/maps/dir/?api=1&destination=${lat.toFixed(6)},${lon.toFixed(6)}`;
 
@@ -96,6 +104,6 @@ const BM = (() => {
   }
   function download(name, text, type){ const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([text], {type})); a.download = name; document.body.appendChild(a); a.click(); a.remove(); }
 
-  return {STATUS, RECEPTORS, SENSITIVE, SECT, RESEARCH, esc, fmt, col, dmy, daysTo, reportRemoveUrl, reportAddUrl, directions, store, load, rose, prevailing,
+  return {STATUS, RECEPTORS, SENSITIVE, SECT, RESEARCH, REMOVE_REASONS, ADD_TYPES, removeHome, addPlace, esc, fmt, col, dmy, daysTo, reportRemoveUrl, reportAddUrl, directions, store, load, rose, prevailing,
           VERDICT, verdictText, route, gpx, download};
 })();

@@ -136,6 +136,49 @@ table.intl .why{color:var(--muted);font-size:11.5px}
 .toast{position:fixed;left:50%;top:14px;transform:translateX(-50%);background:#1d2420;color:#fff;padding:8px 14px;border-radius:6px;font-size:13px;z-index:2000;box-shadow:0 2px 10px rgba(0,0,0,.3)}
 .toast button{margin-left:10px;font:inherit;background:none;border:1px solid #fff6;color:#fff;border-radius:4px;padding:2px 8px;cursor:pointer}
 .visited{opacity:.55}
+
+/* ---- card, tabs, popovers, welcome & tour */
+.card-open #list,.card-open .controls,.card-open #newbox{display:none!important}
+.card-open #detail{flex:1;overflow:auto;border-bottom:0}
+.link{all:unset;cursor:pointer;color:var(--accent);font-size:12.5px;font-weight:500}
+.link:hover{text-decoration:underline}
+.link:focus-visible,.tabs button:focus-visible,.btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.helpbtn{display:inline-block;margin-top:6px}
+.cardtop{display:flex;justify-content:space-between;align-items:center;margin:-2px 0 10px}
+.tabs{display:flex;gap:2px;margin:14px 0 10px;border-bottom:1px solid var(--line)}
+.tabs button{all:unset;cursor:pointer;padding:7px 9px;font-size:12.5px;font-weight:600;color:var(--muted);border-bottom:2px solid transparent;margin-bottom:-1px;white-space:nowrap}
+.tabs button[aria-selected=true]{color:var(--fg);border-bottom-color:var(--accent)}
+.tabp h3{font-size:12px;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);margin:14px 0 6px}
+.tabp h3:first-child{margin-top:4px}
+.rulebtn{all:unset;cursor:pointer;font-weight:600}
+.rulebtn:hover{color:var(--accent)}
+.i,.ibtn{display:inline-flex;align-items:center;justify-content:center;width:15px;height:15px;border-radius:50%;border:1px solid var(--muted);color:var(--muted);font:700 10px/1 var(--sans);font-style:italic;vertical-align:1px}
+.ibtn{all:unset;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;width:17px;height:17px;border-radius:50%;border:1px solid var(--muted);color:var(--muted);font:700 10.5px var(--sans);font-style:italic;flex:none}
+.ibtn:hover{border-color:var(--accent);color:var(--accent)}
+.rrow{display:flex;align-items:flex-start;justify-content:space-between;gap:6px}
+.pop{position:fixed;z-index:3000;background:var(--panel);color:var(--fg);border:1px solid var(--line);border-radius:8px;box-shadow:0 6px 24px rgba(0,0,0,.25);padding:12px 14px;font-size:12.5px;line-height:1.45}
+.pop .h{font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-top:8px}
+.pop .lnk{margin-top:10px}.pop a{color:var(--accent)}
+.pop .x{all:unset;cursor:pointer;position:absolute;right:10px;top:6px;font-size:18px;color:var(--muted)}
+.modal{position:fixed;inset:0;background:rgba(10,14,12,.55);z-index:4000;display:flex;align-items:center;justify-content:center;padding:16px}
+.mbox{background:var(--panel);color:var(--fg);border-radius:10px;max-width:560px;width:100%;max-height:calc(100vh - 32px);overflow:auto;padding:22px 24px;box-shadow:0 10px 40px rgba(0,0,0,.35)}
+.mbox h2{margin:0 0 8px;font-size:20px;line-height:1.25;text-wrap:balance}
+.mbox p{margin:0 0 10px}
+.feat{margin:6px 0 12px;padding-left:18px;display:grid;gap:5px}
+.warnline{background:#fff2d6;color:#5e3b00;border-radius:6px;padding:7px 10px;font-size:12.5px}
+.tour-hl{position:fixed;z-index:3500;border-radius:8px;box-shadow:0 0 0 9999px rgba(10,14,12,.55);pointer-events:none;outline:2px solid #ffd54f}
+.tour-box{position:fixed;z-index:3600;background:var(--panel);color:var(--fg);border-radius:10px;padding:14px 16px;box-shadow:0 8px 30px rgba(0,0,0,.35);font-size:13px}
+.tour-box p{margin:6px 0 2px}.tour-box .n{font-size:11px;color:var(--muted)}
+.tour-box .btns{justify-content:flex-end}
+.addform label{display:grid;gap:3px;margin-top:8px;font-size:12px}
+.addform select,.addform input,details.nh select{font:inherit;font-size:12px;padding:4px;border:1px solid #c9d0ca;border-radius:4px;max-width:100%}
+.hp button.go{background:#2f6b4f;border-color:#2f6b4f;color:#fff}
+details.nh{margin-top:8px}
+details.nh summary{cursor:pointer;color:#b3261e;font-weight:600;font-size:12.5px}
+details.nh select{display:block;margin:6px 0;width:100%}
+.measbtn{margin-top:4px}
+.measbtn a,.addbtn a{width:auto!important;padding:0 8px;font:600 12px var(--sans)!important;line-height:30px!important}
+.measlbl{font-weight:700;font-size:12px}
 </style>
 
 </head>
@@ -144,6 +187,7 @@ table.intl .why{color:var(--muted);font-size:11.5px}
   <header>
     <h1>Biomethane &amp; AD planning applications, Ireland</h1>
     <div class="sub" id="sub">Applications lodged or decided since 2021, with homes within 1 km of each site boundary.</div>
+    <button class="link helpbtn" id="help">How to use this map</button>
   </header>
   <div id="newbox" hidden></div>
   <div class="controls">
@@ -158,6 +202,7 @@ table.intl .why{color:var(--muted);font-size:11.5px}
     <a href="data/homes.geojson">Homes (GeoJSON)</a>
     <a href="data/receptors.geojson">Schools &amp; care (GeoJSON)</a>
     <a href="#" id="about">About the data</a>
+    <a href="https://kobrien-git.github.io/nbcg-ad-comparison/" target="_blank" rel="noopener">International comparison ↗</a>
   </footer>
 </aside>
 <main id="map" aria-label="Map"></main>
