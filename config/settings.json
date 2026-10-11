@@ -1,4 +1,4 @@
 {
-  "report_sheet_csv": "https://docs.google.com/spreadsheets/d/10bPpO12Ajiv6zZqf4Y8IjOAN-zD_0EYFiw7znc818No/pub?gid=777&single=true&output=csv",
-  "_note": "CSV of the 'approved_for_map' tab of the 'Biomethane map - not-a-home reports' Google Sheet (File > Share > Publish to web). Only Home IDs you mark Y are listed there."
+  "report_sheet_csv": "https://docs.google.com/spreadsheets/d/e/2PACX-1vSP6HK4C1WEOYJ6-xgjngkfeZndeEw9qEK5xZ8LNprUqYYMCbs7g5B6qBRMtetp3WPy8RntAmTMzxHm/pub?gid=777&single=true&output=csv",
+  "_note": "Published CSV of the 'for_map (published)' tab of the 'Biomethane map - not-a-home reports' Google Sheet. Rows apply automatically unless the Approved column in the response tabs says N."
 }
