@@ -1,9 +1,9 @@
 {
  "last_updated": "2026-10-11",
  "sites": 46,
- "homes_points": 4099,
+ "homes_points": 4096,
  "start_date": "2021-01-01",
- "homes_removed": 0,
+ "homes_removed": 3,
  "community_additions": 0,
  "needs_review": 0
 }
