@@ -1,0 +1,87 @@
+{
+ "_source": "Kevin O'Brien / NBCG, 'International AD Siting and Community Protections' (https://github.com/kobrien-git/nbcg-ad-comparison). Policy information, not legal advice. No distance here is a proven safe distance.",
+ "rules": [
+  {
+   "id": "FR",
+   "country": "France",
+   "short": "France 200 m",
+   "label": "France: 200 m from the installation to third-party dwellings (ICPE 2781 authorisation)",
+   "applies_tpd_min": 100,
+   "dwelling_m": 200,
+   "sensitive_m": null,
+   "colour": "#1f4e9c",
+   "scope": "Applies under the authorisation regime at 100 t/day or more. Measured from the installation, excluding raw-material-only storage. Other public receptors are assessed through impact and danger studies, not a fixed distance.",
+   "refs": "FRA-REG-001; FRA-SET-001; FRA-SET-002",
+   "source_url": "https://aida.ineris.fr/reglementation/arrete-101109-fixant-regles-techniques-auxquelles-doivent-satisfaire-installations"
+  },
+  {
+   "id": "DE",
+   "country": "Germany",
+   "short": "Germany 300 m",
+   "label": "Germany: 300 m to housing (500 m for specified open facilities) - TA Luft",
+   "applies_tpd_min": 50,
+   "dwelling_m": 300,
+   "dwelling_open_m": 500,
+   "sensitive_m": null,
+   "colour": "#b8860b",
+   "scope": "Formal permit route from 50 t/day in the relevant category (industrial biological treatment). 500 m where specified facilities are open. The separate agricultural provision is different. Legal floors, not safety guarantees.",
+   "refs": "GER-REG-001; GER-SET-001",
+   "source_url": "https://www.verwaltungsvorschriften-im-internet.de/bsvwvbund_18082021_IGI25025005.htm"
+  },
+  {
+   "id": "ON",
+   "country": "Ontario, Canada",
+   "short": "Ontario 200 / 450 m",
+   "label": "Ontario: 200 m to dwellings, 450 m to Type B (sensitive / settlement) uses - MDS Publication 853",
+   "applies_tpd_min": null,
+   "dwelling_m": 200,
+   "sensitive_m": 450,
+   "colour": "#c0392b",
+   "scope": "Rural and agricultural planning guidance (Minimum Distance Separation). Broad installation definition includes storage, loading, flare and separators. Not universal industrial law. Tonnage does not select the route.",
+   "refs": "ONT-SET-001; ONT-SET-002; ONT-DEF-001",
+   "source_url": "https://www.ontario.ca/files/2022-03/omafra-minimum-distance-separation-pub-853-en-2020-03-28.pdf"
+  },
+  {
+   "id": "NBCG",
+   "country": "NBCG suggestion",
+   "short": "NBCG 300 / 500 m",
+   "label": "NBCG suggestion for evaluation: 300 m to dwellings, 500 m to schools, care settings and other high-sensitivity receptors",
+   "applies_tpd_min": null,
+   "dwelling_m": 300,
+   "dwelling_open_m": 500,
+   "sensitive_m": 500,
+   "colour": "#6a3d9a",
+   "scope": "Suggested for evaluation by the group - not current Irish law. Measured from the nearest potentially odorous, noisy or hazardous component. 500 m to dwellings where reception, bunkers or digestate storage is open.",
+   "refs": "NBCG-SITE-001",
+   "source_url": "https://github.com/kobrien-git/nbcg-ad-comparison"
+  },
+  {
+   "id": "DK",
+   "country": "Denmark",
+   "short": "Denmark 50 m (component)",
+   "label": "Denmark: 50 m controls for specified livestock-farm components (not a whole-plant setback)",
+   "applies_tpd_min": null,
+   "dwelling_m": 50,
+   "sensitive_m": null,
+   "colour": "#2e8b57",
+   "info_only": true,
+   "scope": "Component distances on livestock farms, not a universal whole-plant setback from homes. Shown for comparison only; no pass/fail verdict.",
+   "refs": "DEN-SET-001; DEN-SET-002",
+   "source_url": "https://github.com/kobrien-git/nbcg-ad-comparison"
+  },
+  {
+   "id": "NL",
+   "country": "Netherlands",
+   "short": "Netherlands 50 m (gas)",
+   "label": "Netherlands: 50 m external-safety distance from gas bags / liquefied-biogas tanks to the site boundary",
+   "applies_tpd_min": null,
+   "dwelling_m": 50,
+   "sensitive_m": null,
+   "colour": "#e67e22",
+   "info_only": true,
+   "scope": "An equipment-to-boundary gas-safety distance, not a dwelling setback. Activity tables add 100 m / 50 m distances for specified activities. Shown for comparison only; no pass/fail verdict.",
+   "refs": "NLD-SET-001; NLD-SAF-001",
+   "source_url": "https://github.com/kobrien-git/nbcg-ad-comparison"
+  }
+ ]
+}
