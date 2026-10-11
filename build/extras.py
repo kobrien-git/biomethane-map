@@ -69,8 +69,11 @@ def feed():
             df = pd.read_csv(io.BytesIO(raw), dtype=str).fillna('')
             df.columns = [c.strip().lower() for c in df.columns]
             if 'action' in df.columns:                       # unified "for_map" tab
-                rem = df[df.action.str.lower() == 'remove']
-                removed |= set(rem.home_id.str.strip())
+                # rows arrive in submission order; a later row with site "UNDO" restores the home
+                for _, r in df[df.action.str.lower() == 'remove'].iterrows():
+                    hid = r.home_id.strip()
+                    if str(r.get('site', '')).strip().upper() == 'UNDO': removed.discard(hid)
+                    else: removed.add(hid)
                 for _, r in df[df.action.str.lower() == 'add'].iterrows():
                     ll = _latlon(r.get('lat_lon', ''))
                     if ll: adds.append({'category': r.get('type', ''), 'name': r.get('name', ''), 'site': r.get('site', ''),
@@ -325,16 +328,31 @@ def layouts():
 
 
 # ------------------------------------------------------------------ 8. international separation distances
+def _trim(g, w=15):
+    """Red-line boundary with strips narrower than ~2*w m removed (access roads, pipe and cable corridors, sightline splays)."""
+    if g is None or g.area < 2000: return g
+    t = g.buffer(-w).buffer(w)
+    if t.is_empty: return g
+    parts = list(t.geoms) if t.geom_type == 'MultiPolygon' else [t]
+    big = max(p.area for p in parts)
+    t = unary_union([p for p in parts if p.area >= 0.1 * big])
+    return t if t.area >= 0.3 * g.area else g
+
+
 def intl(sites, homes, recs, lay):
     cfg = _json(os.path.join(B.CFG, 'intl_rules.json'), {'rules': []})
     rules = cfg['rules']; rings = []; verdicts = {}
     lm = lay[lay['measure'].fillna(True).astype(bool)] if len(lay) and 'measure' in lay.columns else lay
     foot = {sid: unary_union(g.geometry.tolist()) for sid, g in lm.groupby('site_id')} if len(lm) else {}
+    # France excludes storage of raw crops only (e.g. silage clamps) from the installation
+    lf = lm[lm['kind'].fillna('') != 'raw_storage'] if len(lm) and 'kind' in lm.columns else lm
+    foot_fr = {sid: unary_union(g.geometry.tolist()) for sid, g in lf.groupby('site_id')} if len(lf) else {}
     open_sites = set(lay[lay.get('open', False) == True].site_id) if len(lay) and 'open' in lay.columns else set()
     for _, s in sites.iterrows():
         src = foot.get(s.site_id)
         measured = 'plant structures (traced from the site layout)' if src is not None else 'site boundary'
-        if src is None: src = s.geometry
+        if src is None: src = _trim(s.geometry); measured = 'site boundary' if src is s.geometry else 'site boundary (access roads and pipe corridors removed)'
+        src_fr = foot_fr.get(s.site_id, src)
         tpy = pd.to_numeric(str(s.tonnes_per_year).replace(',', ''), errors='coerce'); tpd = tpy / 365 if pd.notna(tpy) else None
         h = homes[homes.site_id == s.site_id]; r = recs[recs.site_id == s.site_id]
         hd = h.geometry.distance(src) if len(h) else pd.Series(dtype=float)
@@ -343,6 +361,9 @@ def intl(sites, homes, recs, lay):
         out = []
         for ru in rules:
             dm = ru.get('dwelling_open_m') if (s.site_id in open_sites and ru.get('dwelling_open_m')) else ru['dwelling_m']
+            o = src_fr if ru['id'] == 'FR' else src
+            hd = h.geometry.distance(o) if len(h) else pd.Series(dtype=float)
+            rd = r.geometry.distance(o) if len(r) else pd.Series(dtype=float)
             nh = int((hd <= dm).sum()) if len(hd) else 0
             nl = int(((hd <= dm) & (h.tier != 'Possible home')).sum()) if len(hd) else 0
             ns = int(((rd <= ru['sensitive_m']) & sens).sum()) if ru.get('sensitive_m') and len(rd) else 0
@@ -353,10 +374,10 @@ def intl(sites, homes, recs, lay):
             else: v = 'fail' if (nh or ns) else 'pass'
             out.append({'id': ru['id'], 'distance_m': dm, 'homes': nh, 'likely_homes': nl, 'sensitive': ns, 'verdict': v})
             if s.geometry.area > 500 or src is not s.geometry:
-                rings.append({'site_id': s.site_id, 'rule': ru['id'], 'distance_m': dm, 'kind': 'dwelling', 'geometry': src.buffer(dm, 32)})
+                rings.append({'site_id': s.site_id, 'rule': ru['id'], 'distance_m': dm, 'kind': 'dwelling', 'geometry': o.buffer(dm, 32)})
                 if ru.get('sensitive_m') and ru['sensitive_m'] != dm:
-                    rings.append({'site_id': s.site_id, 'rule': ru['id'], 'distance_m': ru['sensitive_m'], 'kind': 'sensitive', 'geometry': src.buffer(ru['sensitive_m'], 32)})
-        verdicts[s.site_id] = {'measured_from': measured, 'tonnes_per_day': round(tpd) if tpd else None, 'rules': out}
+                    rings.append({'site_id': s.site_id, 'rule': ru['id'], 'distance_m': ru['sensitive_m'], 'kind': 'sensitive', 'geometry': o.buffer(ru['sensitive_m'], 32)})
+        verdicts[s.site_id] = {'measured_from': measured, 'provisional': src is not foot.get(s.site_id), 'tonnes_per_day': round(tpd) if tpd else None, 'rules': out}
     rg = gpd.GeoDataFrame(rings, geometry='geometry', crs=2157) if rings else gpd.GeoDataFrame(columns=['site_id', 'rule', 'distance_m', 'kind', 'geometry'], geometry='geometry', crs=2157)
     rg['geometry'] = rg.geometry.boundary.simplify(2)            # outlines only (small file)
     return rg, verdicts, cfg
