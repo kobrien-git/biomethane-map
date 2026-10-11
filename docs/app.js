@@ -439,7 +439,6 @@ function select(id, move = true){
       <h3>Door to door</h3>
       <div class="btns">
         <a class="btn" href="print.html?site=${id}&mode=canvass" target="_blank" rel="noopener">Walking list & map (print)</a>
-        <button class="btn" id="gpx">Route for phone (GPX)</button>
         <button class="btn" id="dl">Homes list (CSV)</button>
       </div>
       <div class="note" style="margin-top:4px">Visit ticks are kept in this browser only; nothing about residents is stored.</div>
@@ -459,7 +458,6 @@ function select(id, move = true){
     const rows = [['site','home_id','tier','distance_from_boundary_m','downwind_pct','latitude','longitude']].concat(live().map(f =>
       [s.project, f.properties.home_id, f.properties.tier, f.properties.dist_m, f.properties.downwind_pct ?? '', f.geometry.coordinates[1].toFixed(5), f.geometry.coordinates[0].toFixed(5)]));
     BM.download(s.project.replace(/[^\w]+/g,'_') + '_homes.csv', rows.map(r => r.map(v => `"${String(v ?? '').replace(/"/g,'""')}"`).join(',')).join('\n'), 'text/csv'); };
-  document.getElementById('gpx').onclick = () => BM.download(s.project.replace(/[^\w]+/g,'_') + '_homes.gpx', BM.gpx(s.project, BM.route(live())), 'application/gpx+xml');
   d.querySelectorAll('a[data-drw]').forEach(a => a.onclick = e => { e.preventDefault();
     const o = D.DRW_LYR.find(x => x.meta.file === a.dataset.drw); if (!o) return;
     userOff.delete('Planning drawings (georeferenced)'); saveOff(); syncLayerTicks();
