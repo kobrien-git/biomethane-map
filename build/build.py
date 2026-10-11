@@ -69,7 +69,7 @@ def fetch_refs(auth, ref):
 
 
 def build_sites():
-    projects = pd.read_csv(os.path.join(CFG, 'projects.csv')).fillna('')
+    projects = pd.read_csv(os.path.join(CFG, 'projects.csv'), dtype=str).fillna('')
     excluded = pd.read_csv(os.path.join(CFG, 'excluded_applications.csv')).fillna('')
     excl = {(a, norm(r)) for a, r in zip(excluded.planning_authority, excluded.application_ref)}
     known = {(a, norm(r)) for a, refs in zip(projects.planning_authority, projects.application_refs) for r in refs.split(';')}
@@ -124,18 +124,21 @@ def build_sites():
                          application_refs=', '.join(dict.fromkeys(s.ApplicationNumber)),
                          appeal_refs=', '.join(sorted({a for a in s.AppealRefNumber if a})),
                          first_lodged=str(s.rec.min()), latest_lodged=str(last.rec), latest_decision=str(last.dec or ''),
-                         status=grp, status_note=note, tonnes_per_year=(tonnes[0] if tonnes else ''),
+                         status=grp, status_note=note,
+                         tonnes_per_year=(m.tonnes_per_year if m is not None and m.get('tonnes_per_year', '') else (tonnes[0].replace(',', '') if tonnes else '')),
+                         tonnes_source=(m.tonnes_source if m is not None and m.get('tonnes_per_year', '') else ('Planning description' if tonnes else '')),
                          site_area_ha=round(geom.area / 1e4, 2), approx_location=bool(geom.area < 500),
                          planning_link=last.get('LinkAppDetails', '') or '', description=str(last.DevelopmentDescription)[:500],
                          needs_review=m is None, geometry=geom))
     # pre-application sites (no boundary yet)
-    pre = pd.read_csv(os.path.join(CFG, 'pre_application_sites.csv')).fillna('')
+    pre = pd.read_csv(os.path.join(CFG, 'pre_application_sites.csv'), dtype=str).fillna('')
     for _, r in pre.iterrows():
         rows.append(dict(project=r.project, county=r.county, planning_authority='', type='Pre-application', developer=r.developer,
                          application_refs='', appeal_refs='', first_lodged='', latest_lodged='', latest_decision='',
-                         status='Pre-application', status_note=r.status_note, tonnes_per_year='', site_area_ha=None,
+                         status='Pre-application', status_note=r.status_note, tonnes_per_year=r.get('tonnes_per_year', ''),
+                         tonnes_source=r.get('tonnes_source', ''), site_area_ha=None,
                          approx_location=True, planning_link=r.source_url, description=r.location_accuracy, needs_review=False,
-                         geometry=Point(r.itm_x, r.itm_y)))
+                         geometry=Point(float(r.itm_x), float(r.itm_y))))
     sites = gpd.GeoDataFrame(rows, crs=2157)
     sites['site_id'] = [hashlib.md5(p.encode()).hexdigest()[:8] for p in sites['project']]
     return sites
@@ -285,40 +288,77 @@ def excluded_homes():
 
 # ---------------------------------------------------------------- 4. outputs
 def main():
+    import extras as X
     sites = build_sites()
     print(len(sites), 'sites', flush=True)
-    homes, rings = [], []
-    drop = excluded_homes(); dropped = 0
+    sites = X.deadlines(sites)
+    sites = X.track_new(sites)
+    drop, additions = X.feed()
+    lay = X.layouts()
+    pts = sites.copy()
+    pts['geometry'] = [g if g.geom_type == 'Point' else polylabel(max(getattr(g, 'geoms', [g]), key=lambda x: x.area), tolerance=1.0) for g in sites.geometry]
+    sites, roses = X.wind(sites, pts.to_crs(4326))
+    foot = {sid: g.unary_union for sid, g in lay.groupby('site_id').geometry} if len(lay) else {}
+    homes, rings = [], []; dropped = 0
+    add_homes = additions[additions.category.str.lower().str.startswith('home')] if len(additions) else additions
     for i, s in sites.iterrows():
         print('homes:', s.project, flush=True)
-        h = homes_for_site(s).copy(); h['site_id'] = s.site_id; h['project'] = s.project
+        h = homes_for_site(s).copy()
+        if len(add_homes):                                  # homes added by map users
+            a = add_homes[add_homes.intersects(s.geometry.buffer(1000)) & ~add_homes.within(s.geometry)]
+            if len(a):
+                a = gpd.GeoDataFrame({'tier': 'Reported home', 'geometry': a.geometry.values}, crs=2157)
+                a['dist_m'] = a.geometry.distance(s.geometry).round(0)
+                a['band'] = pd.cut(a.dist_m, [-1, 250, 500, 1000], labels=[b[2] for b in BANDS]).astype(str)
+                h = pd.concat([h, a], ignore_index=True)
+        h['site_id'] = s.site_id; h['project'] = s.project
         h['home_id'] = [home_id(g) for g in h.geometry]
+        h = h.drop_duplicates('home_id')
         n = len(h); h = h[~h.home_id.isin(drop)]; dropped += n - len(h)
-        homes.append(h)
+        h['downwind_pct'] = [X.downwind_pct(g, s.geometry, roses.get(s.site_id)) for g in h.geometry]
+        f = foot.get(s.site_id)
+        h['plant_m'] = h.geometry.distance(f).round(0) if f is not None else None
+        likely = h.tier.isin(['Likely home', 'Reported home'])
         for lo, hi, lab in BANDS:
-            cl = int(((h.dist_m <= hi) & (h.tier == 'Likely home')).sum()); cp = int(((h.dist_m <= hi) & (h.tier == 'Possible home')).sum())
+            cl = int(((h.dist_m <= hi) & likely).sum()); cp = int(((h.dist_m <= hi) & ~likely).sum())
             sites.loc[i, f'likely_within_{hi}m'] = cl; sites.loc[i, f'possible_within_{hi}m'] = cp
             ring = s.geometry.buffer(hi, 48).difference(s.geometry)
             rings.append({'site_id': s.site_id, 'project': s.project, 'distance_m': hi, 'likely_homes_within': cl,
                           'possible_homes_within': cp, 'geometry': ring})
         sites.loc[i, 'nearest_home_m'] = float(h.dist_m.min()) if len(h) else None
+        dw = h[(h.dist_m <= 1000) & (h.downwind_pct.fillna(0) >= 10)]
+        sites.loc[i, 'downwind_homes_1km'] = int(len(dw))
+        homes.append(h)
     homes = gpd.GeoDataFrame(pd.concat(homes, ignore_index=True), crs=2157)
     print('homes removed as not-a-home:', dropped, flush=True)
-    # dedupe homes shared by two nearby sites: keep both (each site's count is its own), fine for display
+    recs = X.receptors(sites, additions)
+    for i, s in sites.iterrows():
+        r = recs[recs.site_id == s.site_id]
+        sites.loc[i, 'receptors_1km'] = int(len(r))
+        sites.loc[i, 'sensitive_500m'] = int(((r.dist_m <= 500) & r.category.isin(['School', 'Childcare', 'Care home', 'Health'])).sum())
+    sites = X.natura_water(sites)
+    intl_rings, verdicts, rules = X.intl(sites, homes, recs, lay)
+    sites['intl'] = [json.dumps(verdicts.get(sid, {})) for sid in sites.site_id]
     rings = gpd.GeoDataFrame(rings, crs=2157)
-    pts = sites.copy()
-    pts['geometry'] = [g if g.geom_type == 'Point' else polylabel(max(getattr(g, 'geoms', [g]), key=lambda x: x.area), tolerance=1.0) for g in sites.geometry]
-    w = lambda gdf, name, prec=6: open(os.path.join(OUT, name), 'w').write(gdf.to_crs(4326).to_json(drop_id=True, to_wgs84=False))
+    pts = sites.copy(); pts['geometry'] = [g if g.geom_type == 'Point' else polylabel(max(getattr(g, 'geoms', [g]), key=lambda x: x.area), tolerance=1.0) for g in sites.geometry]
+    w = lambda gdf, name: open(os.path.join(OUT, name), 'w').write(gdf.to_crs(4326).to_json(drop_id=True, to_wgs84=False))
     poly = sites[sites.geometry.geom_type != 'Point']
-    w(poly.drop(columns=['description']), 'sites.geojson'); w(pts, 'site_points.geojson'); w(rings, 'rings.geojson')
-    w(homes[['home_id', 'site_id', 'project', 'tier', 'dist_m', 'band', 'geometry']], 'homes.geojson')
+    w(poly.drop(columns=['description', 'intl']), 'sites.geojson'); w(pts, 'site_points.geojson'); w(rings, 'rings.geojson')
+    w(homes[['home_id', 'site_id', 'project', 'tier', 'dist_m', 'band', 'downwind_pct', 'plant_m', 'geometry']], 'homes.geojson')
+    w(recs[['site_id', 'category', 'name', 'source', 'dist_m', 'geometry']], 'receptors.geojson')
+    w(intl_rings, 'intl_rings.geojson')
+    w(lay if len(lay) else gpd.GeoDataFrame(columns=['site_id', 'label', 'kind', 'geometry'], geometry='geometry', crs=2157), 'layouts.geojson')
+    json.dump(rules, open(os.path.join(OUT, 'intl_rules.json'), 'w'), indent=1)
     cols = ['project', 'county', 'planning_authority', 'type', 'developer', 'status', 'status_note', 'application_refs', 'appeal_refs',
-            'first_lodged', 'latest_lodged', 'latest_decision', 'tonnes_per_year', 'site_area_ha',
+            'first_lodged', 'latest_lodged', 'latest_decision', 'obs_deadline', 'appeal_deadline', 'tonnes_per_year', 'tonnes_source', 'site_area_ha',
             'likely_within_250m', 'possible_within_250m', 'likely_within_500m', 'possible_within_500m',
-            'likely_within_1000m', 'possible_within_1000m', 'nearest_home_m', 'approx_location', 'planning_link']
+            'likely_within_1000m', 'possible_within_1000m', 'nearest_home_m', 'downwind_homes_1km', 'prevailing_from',
+            'receptors_1km', 'sensitive_500m', 'sac_name', 'sac_m', 'spa_name', 'spa_m', 'river_name', 'river_m',
+            'approx_location', 'planning_link']
     sites[cols].sort_values(['status', 'project']).to_csv(os.path.join(OUT, 'sites_summary.csv'), index=False)
     json.dump({'last_updated': TODAY.isoformat(), 'sites': int(len(sites)), 'homes_points': int(len(homes)),
-               'start_date': START_DATE, 'homes_removed': int(dropped), 'needs_review': int(sites.needs_review.sum())},
+               'start_date': START_DATE, 'homes_removed': int(dropped), 'community_additions': int(len(additions)),
+               'needs_review': int(sites.needs_review.sum())},
               open(os.path.join(OUT, 'meta.json'), 'w'), indent=1)
     print('done', TODAY)
 
