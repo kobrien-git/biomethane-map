@@ -204,7 +204,7 @@ def receptors(sites, additions, refresh_osm=True):
             rows.append({'site_id': s.site_id, 'category': cat, 'name': el['tags'].get('name', ''), 'source': 'OpenStreetMap', 'geometry': p})
         # community additions (non-home types)
         if len(additions):
-            a = additions[additions.intersects(zone) & ~additions.category.str.lower().str.startswith('home')]
+            a = additions[additions.intersects(zone) & ~additions.category.str.lower().str.startswith('home') & ~additions.category.str.lower().str.contains('well')]
             for _, r in a.iterrows():
                 cat = ('School' if 'school' in r.category.lower() else 'Childcare' if 'cr' in r.category.lower()[:3] or 'child' in r.category.lower()
                        else 'Care home' if 'nursing' in r.category.lower() or 'care' in r.category.lower() else 'Health' if 'health' in r.category.lower() or 'hospital' in r.category.lower()
@@ -382,3 +382,54 @@ def intl(sites, homes, recs, lay):
     rg = gpd.GeoDataFrame(rings, geometry='geometry', crs=2157) if rings else gpd.GeoDataFrame(columns=['site_id', 'rule', 'distance_m', 'kind', 'geometry'], geometry='geometry', crs=2157)
     rg['geometry'] = rg.geometry.boundary.simplify(2)            # outlines only (small file)
     return rg, verdicts, cfg
+
+
+# ------------------------------------------------------------------ 9. wells
+GSI_WELLS = 'https://gsi.geodata.gov.ie/server/rest/services/Groundwater/IE_GSI_Groundwater_Wells_Springs_100K_IE26_ITM/MapServer/0'
+GSI_CACHE = os.path.join(B.CFG, 'gsi_wells_cache.json')
+
+def _gsi_pt(geom):
+    """GSI publishes each record as a circle sized to its location accuracy; use the centre."""
+    from shapely.geometry import Polygon
+    if 'x' in geom: return Point(geom['x'], geom['y'])
+    try: return Polygon(geom['rings'][0]).centroid
+    except Exception: return None
+
+def wells(sites, additions):
+    """GSI Groundwater Wells & Springs records within 1 km of each site (official but incomplete; many locations only
+    accurate to 1-2 km), plus COUNTS of private wells reported by map users. Reported well locations are never published:
+    only counts per distance band (privacy - see README)."""
+    cache = _json(GSI_CACHE, {})
+    rows = []
+    for _, s in sites.iterrows():
+        zone = s.geometry.buffer(1000)
+        if os.environ.get('BM_OFFLINE') != '1' and (s.site_id not in cache or cache[s.site_id].get('fetched', '') < (B.TODAY - pd.Timedelta(days=90)).isoformat()):
+            try:
+                x0, y0, x1, y1 = zone.bounds
+                d = json.loads(B.get(GSI_WELLS + '/query', {'geometry': f'{x0},{y0},{x1},{y1}', 'geometryType': 'esriGeometryEnvelope', 'inSR': 2157,
+                    'outFields': 'WELL_ID,SOURCETYP,SOURCE_USE,XYACCURACY,HOLEDEPTHM,DRILL_DATE,TOWNLAND', 'returnGeometry': 'true', 'outSR': 2157, 'f': 'json'}, tries=1, timeout=60))
+                cache[s.site_id] = {'fetched': B.TODAY.isoformat(), 'features': [dict(f['attributes'], E=round(c.x, 1), N=round(c.y, 1)) for f in d.get('features', []) if f.get('geometry')
+                                                    for c in [_gsi_pt(f['geometry'])] if c is not None]}
+            except Exception as e:
+                print('  GSI wells unavailable for', s.site_id, e, flush=True)
+        for a in (cache.get(s.site_id) or {}).get('features', []):
+            try: pt = Point(float(a['E']), float(a['N']))
+            except Exception: continue
+            dm = round(pt.distance(s.geometry))
+            if dm > 1000: continue
+            rows.append({'site_id': s.site_id, 'well_id': a.get('WELL_ID'), 'type': (a.get('SOURCETYP') or 'Unknown').strip(),
+                         'use': (a.get('SOURCE_USE') or 'Unknown').strip(), 'accuracy': (a.get('XYACCURACY') or '').strip(),
+                         'depth_m': a.get('HOLEDEPTHM'), 'drilled': (str(pd.to_datetime(a['DRILL_DATE'], unit='ms').year) if isinstance(a.get('DRILL_DATE'), (int, float)) else ''), 'townland': a.get('TOWNLAND') or '',
+                         'dist_m': dm, 'geometry': pt})
+    json.dump(cache, open(GSI_CACHE, 'w'))
+    g = gpd.GeoDataFrame(rows, geometry='geometry', crs=2157) if rows else gpd.GeoDataFrame(columns=['site_id', 'dist_m', 'geometry'], geometry='geometry', crs=2157)
+    counts = {}
+    rw = additions[additions.category.str.lower().str.contains('well')] if len(additions) else additions
+    for _, s in sites.iterrows():
+        c = {'gsi_1000': int((g.site_id == s.site_id).sum()) if len(g) else 0, 'reported': {}}
+        if len(rw):
+            d = rw.geometry.distance(s.geometry)
+            c['reported'] = {str(b): int((d <= b).sum()) for b in (250, 500, 1000)}
+        counts[s.site_id] = c
+    print('wells: GSI records within 1 km', len(g), '| reported private wells', len(rw), flush=True)
+    return g, counts

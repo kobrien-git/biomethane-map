@@ -339,6 +339,12 @@ def main():
     homes = gpd.GeoDataFrame(pd.concat(homes, ignore_index=True), crs=2157)
     print('homes removed as not-a-home:', dropped, flush=True)
     recs = X.receptors(sites, additions)
+    try:
+        gw, wc = X.wells(sites, additions)
+        open(os.path.join(OUT, 'gsi_wells.geojson'), 'w').write(gw.to_crs(4326).to_json(drop_id=True))
+        json.dump(wc, open(os.path.join(OUT, 'wells.json'), 'w'))
+    except Exception as e:
+        print('wells step failed (map unaffected):', e, flush=True)
     for i, s in sites.iterrows():
         r = recs[recs.site_id == s.site_id]
         sites.loc[i, 'receptors_1km'] = int(len(r))
