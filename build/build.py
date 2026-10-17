@@ -131,14 +131,20 @@ def build_sites():
                          planning_link=last.get('LinkAppDetails', '') or '', description=str(last.DevelopmentDescription)[:500],
                          needs_review=m is None, geometry=geom))
     # pre-application sites (no boundary yet)
+    # Also used for applications just lodged with a council but not yet in the national dataset: give them
+    # application_ref / lodged / status; the row drops out automatically once the national data includes the ref.
     pre = pd.read_csv(os.path.join(CFG, 'pre_application_sites.csv'), dtype=str).fillna('')
+    known = {x.strip().upper() for r in rows for x in str(r['application_refs']).split(',')}
     for _, r in pre.iterrows():
-        rows.append(dict(project=r.project, county=r.county, planning_authority='', type='Pre-application', developer=r.developer,
-                         application_refs='', appeal_refs='', first_lodged='', latest_lodged='', latest_decision='',
-                         status='Pre-application', status_note=r.status_note, tonnes_per_year=r.get('tonnes_per_year', ''),
+        ref = r.get('application_ref', '').strip()
+        if ref and ref.upper() in known: continue
+        st = r.get('status', '') or 'Pre-application'
+        rows.append(dict(project=r.project, county=r.county, planning_authority=r.get('planning_authority', ''), type=('Pre-application' if st == 'Pre-application' else 'Not yet reviewed'), developer=r.developer,
+                         application_refs=ref, appeal_refs='', first_lodged=r.get('lodged', ''), latest_lodged=r.get('lodged', ''), latest_decision='',
+                         status=st, status_note=r.status_note, tonnes_per_year=r.get('tonnes_per_year', ''),
                          tonnes_source=r.get('tonnes_source', ''), site_area_ha=None,
                          approx_location=True, planning_link=r.source_url, description=r.location_accuracy, needs_review=False,
-                         geometry=Point(float(r.itm_x), float(r.itm_y))))
+                         obs_deadline_override=r.get('obs_deadline_override', ''), geometry=Point(float(r.itm_x), float(r.itm_y))))
     sites = gpd.GeoDataFrame(rows, crs=2157)
     sites['site_id'] = [hashlib.md5(p.encode()).hexdigest()[:8] for p in sites['project']]
     return sites

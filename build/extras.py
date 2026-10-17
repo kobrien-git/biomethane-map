@@ -98,6 +98,7 @@ def deadlines(sites):
         rec = pd.to_datetime(s.latest_lodged, errors='coerce'); dec = pd.to_datetime(s.latest_decision, errors='coerce')
         o = (rec + pd.Timedelta(days=35)).date().isoformat() if pd.notna(rec) and pd.isna(dec) and s.status == 'Pending decision' else ''
         a = (dec + pd.Timedelta(days=28)).date().isoformat() if pd.notna(dec) and s.status in ('Granted', 'Refused', 'Under appeal', 'Other') else ''
+        if o and str(s.get('obs_deadline_override', '') or '').strip(): o = str(s.obs_deadline_override).strip()
         obs.append(o); app.append(a)
     sites['obs_deadline'] = obs; sites['appeal_deadline'] = app
     return sites
