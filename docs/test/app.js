@@ -1,6 +1,10 @@
 // Biomethane & AD planning applications map – main page logic. Helpers live in common.js (BM).
 const {esc, fmt, col, dmy, daysTo, store} = BM;
 const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+// water-drop well icon: filled = location known, outline = approximate
+const wellSVG = (c, rough, sz = 18) => `<svg width="${sz}" height="${sz}" viewBox="0 0 24 24" aria-hidden="true" style="display:block;filter:drop-shadow(0 1px 1.5px rgba(0,0,0,.55))">
+  <path d="M12 2.2C12 2.2 4.8 10.4 4.8 15a7.2 7.2 0 0 0 14.4 0C19.2 10.4 12 2.2 12 2.2z" fill="${rough ? 'rgba(255,255,255,.85)' : c}" stroke="${rough ? c : '#fff'}" stroke-width="${rough ? 2.2 : 1.8}" ${rough ? 'stroke-dasharray="3 2"' : ''}/>
+  ${rough ? '' : '<path d="M9 15.2a3 3 0 0 0 3 3" fill="none" stroke="#fff" stroke-width="1.6" stroke-linecap="round" opacity=".85"/>'}</svg>`;
 
 // ---- per-viewer settings (this browser only)
 const marked = new Set(store.get('marked', []));            // homes this viewer marked "not a home"
@@ -84,7 +88,8 @@ function drawLegend(){
     (marked.size ? `<div class="row"><span class="dot" style="background:transparent;border:1.5px dashed #777;box-shadow:none"></span>Removed by you (updates daily)</div>` : '') +
     `<div class="row"><span class="ring" style="border-color:#e31a1c"></span>250 m</div><div class="row"><span class="ring" style="border-color:#ff7f00"></span>500 m</div><div class="row"><span class="ring" style="border-color:#e6c300"></span>1,000 m</div>` +
     (rr.length && map.hasLayer(lyr.recs) ? '<hr style="border:0;border-top:1px solid var(--line);margin:6px 0">' + rr.map(([k, [c, l]]) => `<div class="row"><span class="ric" style="background:${c}">${l}</span>${k}</div>`).join('') : '') +
-    (map.hasLayer(lyr.gsi) ? '<hr style="border:0;border-top:1px solid var(--line);margin:6px 0">' + `<div class="row"><span class="gsiw" style="position:static;transform:rotate(45deg);background:#0277bd"></span>Well on record – domestic</div><div class="row"><span class="gsiw" style="position:static;transform:rotate(45deg);background:#78909c"></span>Well/spring on record – other</div><div class="row"><span class="gsiw" style="position:static;transform:rotate(45deg);border-color:#78909c"></span>Location approximate</div>` : '') +
+    (map.hasLayer(lyr.gsi) ? '<hr style="border:0;border-top:1px solid var(--line);margin:6px 0">' +
+      `<div class="row">${wellSVG('#0277bd', false, 15)}Well on record – domestic</div><div class="row">${wellSVG('#00897b', false, 15)}Well on record – public / group scheme</div><div class="row">${wellSVG('#78909c', false, 15)}Well/spring on record – other</div><div class="row">${wellSVG('#78909c', true, 15)}Location approximate</div>` : '') +
     (opt.rules.length ? '<hr style="border:0;border-top:1px solid var(--line);margin:6px 0">' + D.RULES.filter(r => opt.rules.includes(r.id)).map(r => `<div class="row"><span class="ring" style="border-color:${r.colour};border-top-style:solid"></span>${esc(r.short)}</div>`).join('') : '');
 }
 
@@ -185,8 +190,7 @@ BM.load().then(data => {
   D.raw.gsi.features.forEach(f => { const p = f.properties; if (seen.has(p.well_id)) return; seen.add(p.well_id);
     const rough = /1km|2km|500m/.test(p.accuracy || ''), dom = /domestic/i.test(p.use || '');
     const c = dom ? '#0277bd' : /public|group/i.test(p.use || '') ? '#00897b' : '#78909c';
-    L.marker([f.geometry.coordinates[1], f.geometry.coordinates[0]], {icon:L.divIcon({className:'recicon', iconSize:[0,0],
-      html:`<span class="gsiw" style="background:${rough ? 'transparent' : c};border-color:${rough ? c : '#fff'}"></span>`})})
+    L.marker([f.geometry.coordinates[1], f.geometry.coordinates[0]], {icon:L.divIcon({className:'wellicon', iconSize:[18,18], iconAnchor:[9,16], html:wellSVG(c, rough)})})
      .bindTooltip(`<b>${esc(p.type)}</b> · ${esc(p.use)}${p.depth_m ? ` · ${fmt(p.depth_m)} m deep` : ''}${p.drilled ? ` · ${esc(p.drilled)}` : ''}<br>Location ${esc(p.accuracy || 'accuracy unknown')}${rough ? ' – <b>approximate</b>' : ''}<br><span style="opacity:.7">Geological Survey Ireland record ${esc(p.well_id)}</span>`)
      .addTo(lyr.gsi); });
   // traced plant layouts
