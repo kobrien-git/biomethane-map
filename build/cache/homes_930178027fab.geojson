@@ -1,0 +1,17 @@
+{
+"type": "FeatureCollection",
+"name": "homes_930178027fab",
+"crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:EPSG::2157" } },
+"features": [
+{ "type": "Feature", "properties": { "tier": "Likely home", "dist_m": 984.0, "band": "500–1,000 m" }, "geometry": { "type": "Point", "coordinates": [ 678652.659231579862535, 777091.051429454237223 ] } },
+{ "type": "Feature", "properties": { "tier": "Likely home", "dist_m": 976.0, "band": "500–1,000 m" }, "geometry": { "type": "Point", "coordinates": [ 678690.099941921536811, 777104.997816770803183 ] } },
+{ "type": "Feature", "properties": { "tier": "Possible home", "dist_m": 857.0, "band": "500–1,000 m" }, "geometry": { "type": "Point", "coordinates": [ 678685.579774035373703, 776955.446341413538903 ] } },
+{ "type": "Feature", "properties": { "tier": "Likely home", "dist_m": 951.0, "band": "500–1,000 m" }, "geometry": { "type": "Point", "coordinates": [ 678743.879185437923297, 777104.925128113944083 ] } },
+{ "type": "Feature", "properties": { "tier": "Possible home", "dist_m": 927.0, "band": "500–1,000 m" }, "geometry": { "type": "Point", "coordinates": [ 679166.506069859024137, 777185.985583477304317 ] } },
+{ "type": "Feature", "properties": { "tier": "Possible home", "dist_m": 859.0, "band": "500–1,000 m" }, "geometry": { "type": "Point", "coordinates": [ 678614.702722727088258, 776903.068892847048119 ] } },
+{ "type": "Feature", "properties": { "tier": "Possible home", "dist_m": 934.0, "band": "500–1,000 m" }, "geometry": { "type": "Point", "coordinates": [ 678586.839619932929054, 776975.544116644421592 ] } },
+{ "type": "Feature", "properties": { "tier": "Possible home", "dist_m": 828.0, "band": "500–1,000 m" }, "geometry": { "type": "Point", "coordinates": [ 678679.079583738464862, 776914.382318684016354 ] } },
+{ "type": "Feature", "properties": { "tier": "Possible home", "dist_m": 846.0, "band": "500–1,000 m" }, "geometry": { "type": "Point", "coordinates": [ 679118.944201813777909, 777099.057768422877416 ] } },
+{ "type": "Feature", "properties": { "tier": "Possible home", "dist_m": 907.0, "band": "500–1,000 m" }, "geometry": { "type": "Point", "coordinates": [ 678614.604781475150958, 776963.565709615359083 ] } }
+]
+}
